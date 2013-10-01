@@ -19,7 +19,7 @@ Flag library-only
 
 library
   exposed-modules:     Yage.Core.Application
-  -- other-modules:       Yage.Core.Application
+  other-modules:       Yage.Core.ExceptionFD
   -- other-extensions:    
   build-depends:         base                    == 4.6.*
                        , transformers            == 0.3.*

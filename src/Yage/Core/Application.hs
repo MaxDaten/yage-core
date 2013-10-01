@@ -42,13 +42,9 @@ import qualified Graphics.UI.GLFW as GLFW (
     , Window, createWindow, destroyWindow, iconifyWindow, makeContextCurrent
     )
 
+import           Yage.Core.ExceptionFD
 
 type Application l a = EMT l (StateT ApplicationState IO) a
-
--- move to mtl specific package
-instance MonadState s m => MonadState s (EMT l m) where
-  get = lift get
-  put = lift . put
 
 
 data Window = Window
