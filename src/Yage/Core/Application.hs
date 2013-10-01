@@ -1,52 +1,75 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
+
 module Yage.Core.Application
     ( Application
     , execApplication
-    , createWindow
+    , createWindow, destroyWindow, windowByTitle, iconifyWindow, makeContextCurrent
     , io
+    , ApplicationException
     ) where
 
 -- Types
-import qualified Data.Trie as T (Trie, empty, insert)
+import qualified Data.Trie as T (empty, insert, delete, alterBy, lookup, toListBy)
+import           Data.Trie (Trie(..))
 import qualified Data.ByteString.Char8 as BS (pack)
+import           Data.ByteString (ByteString)
 
 -- concepts
 import           Control.Monad.State
 import           Control.Monad.IO.Class
-import           Control.Exception
+import           Control.Monad.Exception
+import           Control.Monad.Exception.Base
 import           Control.Applicative
 
 -- 3rd party apis
 import qualified Graphics.UI.GLFW as GLFW (
       init, terminate
-    , Window, createWindow, destroyWindow
+    , Window, createWindow, destroyWindow, iconifyWindow, makeContextCurrent
     , Monitor
     )
 
--- own
---import           EnableGUI -- for ghci with ghc >= 78
---import           Yage.Core.Types
---import           Yage.Core.API
+
+newtype Application' a = Application' (StateT ApplicationState IO a)
+    deriving (Monad, MonadIO, MonadState ApplicationState)
+
+type Application l = EMT l Application'
+    --deriving (MonadState ApplicationState)
 
 
-newtype Application a = Application (StateT (ApplicationState) IO a)
-    deriving (Monad, MonadIO, MonadState (ApplicationState))
+instance MonadState ApplicationState (Application l)
 
-newtype Window = Window GLFW.Window
-    deriving Show
-
-data WindowState = WindowState
+data Window = Window
     { winTitle          :: !String
     , winWidth          :: !Int
     , winHeight         :: !Int
-    --, winRatio          :: !Double
     , winHandle         :: !GLFW.Window
     }
+    deriving (Show)
+
 
 data ApplicationState = ApplicationState
     { appTitle          :: !String
-    , appWindows        :: T.Trie (WindowState)
+    , appWindows        :: Trie (Window)
     }
+    deriving (Show)
+
+data ApplicationException
+    = ApplicationException
+    | InitException
+    deriving (Show, Typeable)
+
+instance Exception ApplicationException
 
 initialState :: ApplicationState
 initialState = ApplicationState
@@ -55,39 +78,114 @@ initialState = ApplicationState
     }
 
 
-execApplication :: String -> Application a -> IO (Either String a)
-execApplication title (Application a) = do
-    inited <- GLFW.init
-    if inited 
-        then do
-            (a, st') <- runStateT a $ initialState { appTitle = title }
-            destroyAllWindows $ appWindows st'
-            GLFW.terminate
-            return $ Right a
-        else do
-            return $ Left "Init failed"
+-- add a convenient type signature (without Catch ...)
+--execApplication :: (Throws ApplicationException l) => String -> Application l a -> IO a
+execApplication title app = do
+    let Application' a = runEMT $ 
+            (startUp >> app >>= tearDown)
+            `catch` \(e::ApplicationException) -> error (show e)
+            `catch` \(e::SomeException) -> error (show e)
+    (eResult, st') <- runStateT a (initialState { appTitle = title })
 
-createWindow :: Int -> Int -> String -> Application (Maybe Window)
+    print st'
+    return eResult
+    where
+        startUp :: (Throws ApplicationException l) => Application l ()
+        startUp = do
+            inited <- return False -- io GLFW.init
+            unless inited (throw InitException)
+
+        tearDown :: (Throws SomeException l) => a -> Application l a
+        tearDown x = do
+            destroyAllWindows
+            io GLFW.terminate
+            return x
+
+        -- handleExceptions :: e -> IO a
+        handleUncaughtExceptions e = undefined -- error $ show e 
+
+
+createWindow :: (Throws SomeException l) => Int -> Int -> String -> Application l (Maybe Window)
 createWindow width height title = do
-    mwin <- liftIO $ GLFW.createWindow width height title Nothing Nothing
+    mwin <- io $ mkWindow width height title
     -- addWindow <$> (WindowState title width height <$> mwin) -- need a nice way
-    addWindow' (WindowState title width height <$> mwin)
-    return $ Window <$> mwin
+    addWindow' mwin
+    return mwin
 
     where 
-        addWindow' :: Maybe WindowState -> Application ()
+        addWindow' :: Maybe Window -> Application l ()
         addWindow' = maybe (return ()) addWindow
 
 
--------------------------------------------------------------------------------
--- helper
+        
+mkWindow :: Int -> Int -> String -> IO (Maybe Window)
+mkWindow width height title = do
+    mwin <- GLFW.createWindow width height title Nothing Nothing
+    return $ Window title width height <$> mwin
 
-addWindow :: WindowState -> Application ()
-addWindow win@WindowState{..} = modify $ \st -> st{ appWindows = T.insert (BS.pack winTitle) win (appWindows st) }
 
-destroyAllWindows :: T.Trie (WindowState) -> IO ()
-destroyAllWindows ws = 
-    (return $ fmap (GLFW.destroyWindow . winHandle) ws) >> return ()
+windowByTitle :: String -> Application l (Maybe Window)
+windowByTitle title = do
+    wins <- gets appWindows
+    return $ T.lookup (BS.pack title) wins
 
-io :: MonadIO m => IO a -> m a
+
+destroyWindow :: (Throws SomeException l) => Window -> Application l ()
+destroyWindow Window{winTitle} = do
+    appState <- get
+    let (mwin, wins') = retrieve (BS.pack winTitle) $ appWindows appState
+    case mwin of
+        Just win -> directlyDestroyWindow win
+        Nothing -> return ()
+    put appState{ appWindows = wins' }
+
+
+destroyAllWindows :: (Throws SomeException l) => Application l ()
+destroyAllWindows = do
+    appState <- get
+    let wins = T.toListBy (\_key win -> win) $ appWindows appState
+    mapM_ directlyDestroyWindow wins
+    put appState{ appWindows = T.empty }
+
+
+--------------------------------------------------------------------------------
+-- Helper
+--------------------------------------------------------------------------------
+
+addWindow :: Window -> Application l ()
+addWindow win@Window{..} = 
+    modify $ \st -> 
+        let wins' = T.insert (BS.pack winTitle) win (appWindows st)
+        in st{ appWindows = wins' }
+
+
+{-# INLINE directlyDestroyWindow #-}
+directlyDestroyWindow :: (Throws SomeException l) => Window -> Application l ()
+directlyDestroyWindow Window{winHandle} = io $ GLFW.destroyWindow winHandle
+
+
+io :: (Throws SomeException l, MonadIO m) => IO a -> EMT l m a
 io = liftIO
+
+
+liftGlfw :: (Throws SomeException l) => (GLFW.Window -> IO a) -> Window -> Application l a
+liftGlfw glfwAction = io . glfwAction . winHandle
+
+
+-- TODO: efficent version
+-- lookup and delete value
+retrieve :: ByteString -> Trie a -> (Maybe a, Trie a)
+retrieve q tri = (T.lookup q tri, T.delete q tri)
+
+
+--------------------------------------------------------------------------------
+-- GLFW Action Mapping
+--------------------------------------------------------------------------------
+
+iconifyWindow :: (Throws SomeException l) => Window -> Application l ()
+iconifyWindow = liftGlfw GLFW.iconifyWindow
+
+-- TODO: SomeException ? NoExceptions
+makeContextCurrent :: (Throws SomeException l) => Maybe Window -> Application l ()
+makeContextCurrent mwin = io $ GLFW.makeContextCurrent (winHandle <$> mwin)
+

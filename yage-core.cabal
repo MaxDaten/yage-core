@@ -21,13 +21,14 @@ library
   exposed-modules:     Yage.Core.Application
   -- other-modules:       Yage.Core.Application
   -- other-extensions:    
-  build-depends:         base               == 4.6.*
-                       , transformers       == 0.3.*
-                       , mtl                == 2.1.*
+  build-depends:         base                    == 4.6.*
+                       , transformers            == 0.3.*
+                       , mtl                     == 2.1.*
+                       , control-monad-exception == 0.10.*
 
-                       , bytestring         == 0.10.*
-                       , GLFW-b             == 1.2.*
-                       , bytestring-trie    == 0.2.*
+                       , bytestring              == 0.10.*
+                       , GLFW-b                  == 1.2.*
+                       , bytestring-trie         == 0.2.*
   hs-source-dirs:      src      
   default-language:    Haskell2010
 
@@ -42,5 +43,8 @@ executable simple-app
 
     build-depends:        base
                         , yage-core
+                        , mtl
+                        , control-monad-exception
+
 
     default-language:     Haskell2010
