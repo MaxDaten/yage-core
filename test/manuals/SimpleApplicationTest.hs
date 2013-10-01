@@ -16,11 +16,7 @@ main = do
     where
         app :: (Throws ApplicationException l) => Application l Int
         app = do
-            io $ print "xyz"
-            st <- get
-            io $ print "xyz"
             win <- createWindow 800 600 "test window"
-            io $ print "xyz2"
             io $ print win
             --forever (return ())
             return 42
