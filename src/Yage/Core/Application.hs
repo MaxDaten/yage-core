@@ -30,38 +30,15 @@ import qualified Data.Trie                    as T (delete, empty, insert,
                                                     lookup, toListBy)
 
 -- concepts
-import           Control.Applicative
 import           Control.Monad.Exception
 import           Control.Monad.Exception.Base (NoExceptions)
 import           Control.Monad.IO.Class       ()
 import           Control.Monad.State
 
--- 3rd party apis
-import qualified Graphics.UI.GLFW             as GLFW (Window, createWindow,
-                                                       destroyWindow,
-                                                       iconifyWindow, init,
-                                                       makeContextCurrent,
-                                                       terminate)
 
+import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
-
-type Application l a = EMT l (StateT ApplicationState IO) a
-
-
-data Window = Window
-    { winTitle  :: !String
-    , winWidth  :: !Int
-    , winHeight :: !Int
-    , winHandle :: !GLFW.Window
-    }
-    deriving (Show)
-
-
-data ApplicationState = ApplicationState
-    { appTitle   :: !String
-    , appWindows :: Trie (Window)
-    }
-    deriving (Show)
+import           Yage.Core.Application.GLFW
 
 
 initialState :: ApplicationState
@@ -98,12 +75,6 @@ createWindow width height title = do
     return win
 
 
-mkWindow :: Int -> Int -> String -> IO (Maybe Window)
-mkWindow width height title = do
-    mwin <- GLFW.createWindow width height title Nothing Nothing
-    return $ Window title width height <$> mwin
-
-
 windowByTitle :: String -> Application l (Maybe Window)
 windowByTitle title = do
     wins <- gets appWindows
@@ -137,21 +108,8 @@ addWindow win@Window{..} =
         in st{ appWindows = wins' }
 
 
-{-# INLINE directlyDestroyWindow #-}
-directlyDestroyWindow :: (Throws InternalException l) => Window -> Application l ()
-directlyDestroyWindow Window{winHandle} = glfw $ GLFW.destroyWindow winHandle
-
-
-glfw :: (Throws InternalException l, MonadIO m) => IO a -> EMT l m a
-glfw m = wrapException GLFWException $ liftIO m
-
-
 io :: (Throws ApplicationException l) => IO a -> Application l a
 io m = wrapException IOException $ liftIO m
-
-
-liftGlfw :: (Throws InternalException l) => (GLFW.Window -> IO a) -> Window -> Application l a
-liftGlfw glfwAction = glfw . glfwAction . winHandle
 
 
 -- TODO: efficent version
@@ -159,25 +117,4 @@ liftGlfw glfwAction = glfw . glfwAction . winHandle
 retrieve :: ByteString -> Trie a -> (Maybe a, Trie a)
 retrieve q tri = (T.lookup q tri, T.delete q tri)
 
-
---------------------------------------------------------------------------------
--- GLFW Action Mapping
---------------------------------------------------------------------------------
-
-iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
-iconifyWindow = liftGlfw GLFW.iconifyWindow
-
-
--- TODO: SomeException ? NoExceptions
-makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
-makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
-
-
-initGlfw :: (Throws InternalException l) => Application l ()
-initGlfw = do
-    inited <- glfw $ GLFW.init
-    unless inited (throw $ GLFWException . toException $ InitException)
-
-terminateGlfw :: (Throws InternalException l) => Application l ()
-terminateGlfw = glfw $ GLFW.terminate
 
