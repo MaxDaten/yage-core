@@ -18,8 +18,12 @@
 module Yage.Core.Application
     ( Application
     , execApplication
-    , Window, createWindow, destroyWindow, windowByTitle, iconifyWindow, makeContextCurrent
+    , Window, createWindow, windowByTitle, destroyWindow
     , io
+
+    , module Callbacks
+    , module Event
+    , module Window
     ) where
 
 --------------------------------------------------------------------------------
@@ -41,7 +45,9 @@ import           Control.Monad.State
 
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
-import           Yage.Core.GLFW.Window
+import           Yage.Core.GLFW.Window           as Window
+import           Yage.Core.GLFW.Event            as Event
+import           Yage.Core.GLFW.Callback         as Callbacks
 import           Yage.Core.Application.Types
 
 --------------------------------------------------------------------------------

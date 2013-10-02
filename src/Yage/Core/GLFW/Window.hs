@@ -20,19 +20,13 @@ import           Yage.Core.GLFW.Base
 iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
 iconifyWindow = glfw . GLFW.iconifyWindow . winHandle
 
-
-
 {-# INLINE makeContextCurrent #-}
 makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
 makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
 
-
-
 {-# INLINE directlyDestroyWindow #-}
 directlyDestroyWindow :: (Throws InternalException l) => Window -> Application l ()
 directlyDestroyWindow = glfw . GLFW.destroyWindow . winHandle
-
-
 
 {-# INLINE swapBuffers #-}
 swapBuffers :: (Throws InternalException l) => Window -> Application l ()
@@ -45,7 +39,6 @@ windowShouldClose = glfw . GLFW.windowShouldClose . winHandle
 {-# INLINE setWindowShouldClose #-}
 setWindowShouldClose :: (Throws InternalException l) => Window -> Bool -> Application l ()
 setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . winHandle $ win
-
 
 {-# INLINE mkWindow #-}
 mkWindow :: Int -> Int -> String -> IO (Maybe Window)
