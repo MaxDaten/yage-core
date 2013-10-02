@@ -12,6 +12,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE UnicodeSyntax              #-}
 
 
 module Yage.Core.Application
@@ -21,25 +22,28 @@ module Yage.Core.Application
     , io
     ) where
 
+--------------------------------------------------------------------------------
+
 -- Types
-import           Data.ByteString              (ByteString)
-import qualified Data.ByteString.Char8        as BS (pack)
-import           Data.Maybe                   (fromJust)
-import           Data.Trie                    (Trie)
-import qualified Data.Trie                    as T (delete, empty, insert,
-                                                    lookup, toListBy)
+import           Data.ByteString                 (ByteString)
+import qualified Data.ByteString.Char8           as BS (pack)
+import           Data.Maybe                      (fromJust)
+import           Data.Trie                       (Trie)
+import qualified Data.Trie                       as T (delete, empty, insert,
+                                                       lookup, toListBy)
 
 -- concepts
 import           Control.Monad.Exception
-import           Control.Monad.Exception.Base (NoExceptions)
-import           Control.Monad.IO.Class       ()
+import           Control.Monad.Exception.Base    (NoExceptions)
+import           Control.Monad.IO.Class          ()
 import           Control.Monad.State
 
 
-import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
 import           Yage.Core.Application.GLFW
+import           Yage.Core.Application.Types
 
+--------------------------------------------------------------------------------
 
 initialState :: ApplicationState
 initialState = ApplicationState
@@ -52,11 +56,10 @@ execApplication :: l ~ ApplicationException => String -> Application (Caught l N
 execApplication title app = do
     let a = runEMT $ runApp app
                      `catch` exceptionHandler
-                
+
     (eResult, st') <- runStateT a (initialState { appTitle = title })
     return eResult
     where
-        --runApp :: (Throws ApplicationException l, Throws InternalException l) => Application l a -> Application l a
         runApp app = do
             startup
             x <- app
@@ -116,5 +119,3 @@ io m = wrapException IOException $ liftIO m
 -- lookup and delete value
 retrieve :: ByteString -> Trie a -> (Maybe a, Trie a)
 retrieve q tri = (T.lookup q tri, T.delete q tri)
-
-
