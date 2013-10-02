@@ -22,4 +22,3 @@ pollEvents = glfw GLFW.pollEvents
 {-# INLINE waitEvents #-}
 waitEvents :: (Throws InternalException l) => Application l ()
 waitEvents = glfw GLFW.waitEvents
-

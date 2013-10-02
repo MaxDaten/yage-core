@@ -20,9 +20,11 @@ Flag library-only
 library
   exposed-modules:     Yage.Core.Application
                        Yage.Core.Application.Exception
+  
   other-modules:       Yage.Core.GLFW.Base
                        Yage.Core.GLFW.Window
                        Yage.Core.GLFW.Event
+                       Yage.Core.GLFW.Callback
                        Yage.Core.Application.Types
   -- other-extensions:    
   build-depends:         base                    == 4.6.*
