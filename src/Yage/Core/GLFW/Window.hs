@@ -38,6 +38,13 @@ directlyDestroyWindow = glfw . GLFW.destroyWindow . winHandle
 swapBuffers :: (Throws InternalException l) => Window -> Application l ()
 swapBuffers = glfw . GLFW.swapBuffers . winHandle
 
+{-# INLINE windowShouldClose #-}
+windowShouldClose :: (Throws InternalException l) => Window -> Application l Bool
+windowShouldClose = glfw . GLFW.windowShouldClose . winHandle
+
+{-# INLINE setWindowShouldClose #-}
+setWindowShouldClose :: (Throws InternalException l) => Window -> Bool -> Application l ()
+setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . winHandle $ win
 
 
 {-# INLINE mkWindow #-}
@@ -45,4 +52,3 @@ mkWindow :: Int -> Int -> String -> IO (Maybe Window)
 mkWindow width height title = do
     mwin <- GLFW.createWindow width height title Nothing Nothing
     return $ Window title width height <$> mwin
-
