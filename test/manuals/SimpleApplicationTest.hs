@@ -3,10 +3,7 @@
 module Main where
 
 import Yage.Core.Application
-import Control.Monad (forever)
 import Control.Monad.Exception
-import Control.Monad.Trans (lift)
-import           Control.Monad.State
 
 
 main :: IO ()
