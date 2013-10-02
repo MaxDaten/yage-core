@@ -38,7 +38,6 @@ import qualified Data.Trie                       as T (delete, empty, insert,
 
 -- concepts
 import           Control.Monad.Exception
-import           Control.Monad.Exception.Base    (NoExceptions)
 import           Control.Monad.IO.Class          ()
 import           Control.Monad.State
 
@@ -59,13 +58,15 @@ initialState = ApplicationState
     }
 
 
-execApplication :: l ~ ApplicationException => String -> Application (Caught l NoExceptions) b -> IO b
+execApplication :: (l ~ AnyException) => String -> Application l b -> IO b
 execApplication title app = do
-    let a = runEMT $ runApp app
-                     `catch` exceptionHandler
+    let a = tryEMT $ runApp app
 
     (eResult, st') <- runStateT a (initialState { appTitle = title })
-    return eResult
+    print $ show st'
+    case eResult of
+        Right result -> return result
+        Left ex -> error $ show ex
     where
         runApp app = do
             startup
@@ -75,8 +76,6 @@ execApplication title app = do
 
         startup = initGlfw
         shutdown = destroyAllWindows >> terminateGlfw
-        exceptionHandler = \(e::ApplicationException) -> error $ show e
-
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
