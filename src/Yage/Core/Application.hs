@@ -40,7 +40,8 @@ import           Control.Monad.State
 
 
 import           Yage.Core.Application.Exception
-import           Yage.Core.Application.GLFW
+import           Yage.Core.GLFW.Base
+import           Yage.Core.GLFW.Window
 import           Yage.Core.Application.Types
 
 --------------------------------------------------------------------------------
@@ -71,11 +72,13 @@ execApplication title app = do
         exceptionHandler = \(e::ApplicationException) -> error $ show e
 
 
+
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 createWindow width height title = do
     win <- glfw $ liftM fromJust $ mkWindow width height title
     addWindow win
     return win
+
 
 
 windowByTitle :: String -> Application l (Maybe Window)
@@ -84,12 +87,14 @@ windowByTitle title = do
     return $ T.lookup (BS.pack title) wins
 
 
+
 destroyWindow :: (Throws InternalException l) => Window -> Application l ()
 destroyWindow Window{winTitle} = do
     appState <- get
     let (mwin, wins') = retrieve (BS.pack winTitle) $ appWindows appState
     maybe (return ()) directlyDestroyWindow mwin
     put appState{ appWindows = wins' }
+
 
 
 destroyAllWindows :: (Throws InternalException l) => Application l ()
@@ -109,6 +114,7 @@ addWindow win@Window{..} =
     modify $ \st ->
         let wins' = T.insert (BS.pack winTitle) win (appWindows st)
         in st{ appWindows = wins' }
+
 
 
 io :: (Throws ApplicationException l) => IO a -> Application l a
