@@ -17,9 +17,8 @@
 module Yage.Core.Application
     ( Application
     , execApplication
-    , createWindow, destroyWindow, windowByTitle, iconifyWindow, makeContextCurrent
+    , Window, createWindow, destroyWindow, windowByTitle, iconifyWindow, makeContextCurrent
     , io
-    , ApplicationException
     ) where
 
 -- Types
@@ -72,36 +71,29 @@ initialState = ApplicationState
     }
 
 
--- add a convenient type signature (without Catch ...)
---execApplication :: String -> Application l a -> IO a
-execApplication :: String -> EMT (Caught ApplicationException NoExceptions) (StateT ApplicationState IO) b -> IO b
+execApplication :: l ~ ApplicationException => String -> Application (Caught l NoExceptions) b -> IO b
 execApplication title app = do
-    let a = runEMT $
-            (startUp >> app >>= tearDown)
-            `catch` handleUncaughtExceptions
+    let a = runEMT $ runApp app
+                     `catch` exceptionHandler
+                
     (eResult, st') <- runStateT a (initialState { appTitle = title })
-    print st'
     return eResult
     where
-        startUp :: (Throws ApplicationException l) => Application l ()
-        startUp = do
-            inited <- io GLFW.init
-            unless inited (throw InitException)
-
-        tearDown :: (Throws ApplicationException l) => a -> Application l a
-        tearDown x = do
-            destroyAllWindows
-            io GLFW.terminate
+        --runApp :: (Throws ApplicationException l, Throws InternalException l) => Application l a -> Application l a
+        runApp app = do
+            startup
+            x <- app
+            shutdown
             return x
 
-        handleUncaughtExceptions =
-            \(e::ApplicationException) -> error ("Application Error: " ++ show e)
-            `catch` \(e::SomeException) -> error ("Unexpected Error: " ++ show e)
+        startup = initGlfw
+        shutdown = destroyAllWindows >> terminateGlfw
+        exceptionHandler = \(e::ApplicationException) -> error $ show e
 
 
-createWindow :: (Throws ApplicationException l) => Int -> Int -> String -> Application l Window
+createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 createWindow width height title = do
-    win <- io $ liftM fromJust $ mkWindow width height title
+    win <- glfw $ liftM fromJust $ mkWindow width height title
     addWindow win
     return win
 
@@ -118,7 +110,7 @@ windowByTitle title = do
     return $ T.lookup (BS.pack title) wins
 
 
-destroyWindow :: (Throws ApplicationException l) => Window -> Application l ()
+destroyWindow :: (Throws InternalException l) => Window -> Application l ()
 destroyWindow Window{winTitle} = do
     appState <- get
     let (mwin, wins') = retrieve (BS.pack winTitle) $ appWindows appState
@@ -126,7 +118,7 @@ destroyWindow Window{winTitle} = do
     put appState{ appWindows = wins' }
 
 
-destroyAllWindows :: (Throws ApplicationException l) => Application l ()
+destroyAllWindows :: (Throws InternalException l) => Application l ()
 destroyAllWindows = do
     appState <- get
     let wins = T.toListBy (\_key win -> win) $ appWindows appState
@@ -146,16 +138,20 @@ addWindow win@Window{..} =
 
 
 {-# INLINE directlyDestroyWindow #-}
-directlyDestroyWindow :: (Throws ApplicationException l) => Window -> Application l ()
-directlyDestroyWindow Window{winHandle} = io $ GLFW.destroyWindow winHandle
+directlyDestroyWindow :: (Throws InternalException l) => Window -> Application l ()
+directlyDestroyWindow Window{winHandle} = glfw $ GLFW.destroyWindow winHandle
 
 
-io :: (Throws ApplicationException l, MonadIO m) => IO a -> EMT l m a
-io m = wrapException GLFWException $ liftIO m
+glfw :: (Throws InternalException l, MonadIO m) => IO a -> EMT l m a
+glfw m = wrapException GLFWException $ liftIO m
 
 
-liftGlfw :: (Throws ApplicationException l) => (GLFW.Window -> IO a) -> Window -> Application l a
-liftGlfw glfwAction = io . glfwAction . winHandle
+io :: (Throws ApplicationException l) => IO a -> Application l a
+io m = wrapException IOException $ liftIO m
+
+
+liftGlfw :: (Throws InternalException l) => (GLFW.Window -> IO a) -> Window -> Application l a
+liftGlfw glfwAction = glfw . glfwAction . winHandle
 
 
 -- TODO: efficent version
@@ -168,11 +164,20 @@ retrieve q tri = (T.lookup q tri, T.delete q tri)
 -- GLFW Action Mapping
 --------------------------------------------------------------------------------
 
-iconifyWindow :: (Throws ApplicationException l) => Window -> Application l ()
+iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
 iconifyWindow = liftGlfw GLFW.iconifyWindow
 
 
 -- TODO: SomeException ? NoExceptions
-makeContextCurrent :: (Throws ApplicationException l) => Maybe Window -> Application l ()
-makeContextCurrent mwin = io $ GLFW.makeContextCurrent (winHandle <$> mwin)
+makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
+makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
+
+
+initGlfw :: (Throws InternalException l) => Application l ()
+initGlfw = do
+    inited <- glfw $ GLFW.init
+    unless inited (throw $ GLFWException . toException $ InitException)
+
+terminateGlfw :: (Throws InternalException l) => Application l ()
+terminateGlfw = glfw $ GLFW.terminate
 
