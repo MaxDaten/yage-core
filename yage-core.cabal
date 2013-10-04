@@ -26,11 +26,13 @@ library
                        Yage.Core.GLFW.Event
                        Yage.Core.GLFW.Callback
                        Yage.Core.Application.Types
+                       Yage.Core.Application.Event
   -- other-extensions:    
   build-depends:         base                    == 4.6.*
                        , transformers            == 0.3.*
                        , mtl                     == 2.1.*
                        , control-monad-exception == 0.10.*
+                       , stm                     == 2.4.*
 
                        , bytestring              == 0.10.*
                        , GLFW-b                  == 1.2.*

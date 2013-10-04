@@ -44,4 +44,8 @@ setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . winH
 mkWindow :: Int -> Int -> String -> IO (Maybe Window)
 mkWindow width height title = do
     mwin <- GLFW.createWindow width height title Nothing Nothing
-    return $ Window title width height <$> mwin
+    return $ Window title (width, height) <$> mwin
+
+withWindowHandle :: (Throws InternalException l) => Window -> (GLFW.Window -> Application l a) -> Application l a
+withWindowHandle win f = f $ winHandle win
+

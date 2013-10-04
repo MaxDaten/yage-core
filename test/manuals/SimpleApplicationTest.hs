@@ -2,9 +2,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import Control.Monad.Exception
+import Control.Applicative ((<$>))
+import Control.Monad (void)
 import Yage.Core.Application
 import Yage.Core.Application.Exception
-import Control.Monad.Exception
 
 import Control.Monad (unless)
 
@@ -14,20 +16,26 @@ main = do
     r <- execApplication "simple test app" app
     print r
     where
-        app :: (Throws ApplicationException l, Throws InternalException l) => Application l Int
+        -- app :: (Throws ApplicationException l, Throws InternalException l) => Application l Int
+        app :: Application AnyException Int
         app = do
             win <- createWindow 800 600 "test window"
             io $ print win
 
-            setCursorPosCallback win $ Just mousePos
             loop win
             --forever (return ())
             return 42
         loop win = do
-            pollEvents
+            processEvents
             swapBuffers win
 
             quit <- windowShouldClose win
             unless quit (loop win)
 
-        mousePos _win x y = print $ "mouse: x: " ++ (show x) ++ ";y: " ++ (show y)
+        --processEvent :: (Throws ApplicationException l) => Maybe Event -> Application l ()
+        processEvents = do
+            me <- pollEvent
+            processEvent me
+
+        processEvent Nothing = return ()
+        processEvent (Just e) = io $ print e
