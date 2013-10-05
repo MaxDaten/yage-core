@@ -3,10 +3,7 @@
 module Main where
 
 import Control.Monad.Exception
-import Control.Applicative ((<$>))
-import Control.Monad (void)
 import Yage.Core.Application
-import Yage.Core.Application.Exception
 
 import Control.Monad (unless, when)
 import Data.Maybe (isJust)
@@ -17,7 +14,6 @@ main = do
     r <- execApplication "simple test app" app
     print r
     where
-        -- app :: (Throws ApplicationException l, Throws InternalException l) => Application l Int
         app :: Application AnyException Int
         app = do
             win <- createWindow 800 600 "test window"
@@ -33,7 +29,6 @@ main = do
             quit <- windowShouldClose win
             unless quit (loop win)
 
-        --processEvent :: (Throws ApplicationException l) => Maybe Event -> Application l ()
         processEvents = do
             me <- pollEvent
             processEvent me
