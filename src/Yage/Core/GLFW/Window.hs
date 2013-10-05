@@ -40,12 +40,12 @@ windowShouldClose = glfw . GLFW.windowShouldClose . winHandle
 setWindowShouldClose :: (Throws InternalException l) => Window -> Bool -> Application l ()
 setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . winHandle $ win
 
-{-# INLINE mkWindow #-}
-mkWindow :: Int -> Int -> String -> IO (Maybe Window)
-mkWindow width height title = do
-    mwin <- GLFW.createWindow width height title Nothing Nothing
-    return $ Window title (width, height) <$> mwin
+createWindowHandle :: (Throws InternalException l) => Int -> Int -> String -> Maybe GLFW.Monitor -> Maybe GLFW.Window -> Application l GLFW.Window
+createWindowHandle width height title mMon mWin = do
+    mwin <- glfw $ GLFW.createWindow width height title mMon mWin
+    case mwin of
+        Just win -> return win
+        Nothing -> throw . InternalException . toException $ WindowCreationException
 
 withWindowHandle :: (Throws InternalException l) => Window -> (GLFW.Window -> Application l a) -> Application l a
 withWindowHandle win f = f $ winHandle win
-

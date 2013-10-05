@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE UnicodeSyntax              #-}
+{-# LANGUAGE TupleSections              #-}
 
 
 module Yage.Core.Application
@@ -30,15 +31,13 @@ module Yage.Core.Application
 
 import           Data.ByteString                 (ByteString)
 import qualified Data.ByteString.Char8           as BS (pack)
-import           Data.Maybe                      (fromJust)
 import           Data.Trie                       (Trie)
 import qualified Data.Trie                       as T (delete, empty, insert,
                                                        lookup, toListBy)
 import           Data.List                       (find)
+import           Data.Char                       (isAlphaNum)
 
-import           Control.Applicative             ((<$>))
-import           Control.Monad                   (liftM)
-import           Control.Monad.IO.Class          (liftIO)
+import           Control.Applicative             ((<$>), (<*>))
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
@@ -54,6 +53,8 @@ import           Yage.Core.GLFW.Event
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Types     as Event (Event)
 import           Yage.Core.Application.Event
+import           Yage.Core.Application.Logging
+import           Yage.Core.Application.Utils
 --------------------------------------------------------------------------------
 
 initialState :: ApplicationState
@@ -62,15 +63,22 @@ initialState = ApplicationState
     , appWindows = T.empty
     }
 
-initalEnv :: IO (ApplicationEnv)
-initalEnv = ApplicationEnv <$> newTQueueIO
+initalEnv :: String -> IO (ApplicationEnv)
+initalEnv title = 
+    let loggerName = "app." ++ clearAppTitle title
+    in ApplicationEnv 
+                <$> newTQueueIO
+                <*> ((loggerName,) <$> getLogger loggerName)
+    where
+        clearAppTitle :: String -> String
+        clearAppTitle = filter (isAlphaNum)
 
 
 execApplication :: (l ~ AnyException) => String -> Application l b -> IO b
 execApplication title app = do
     let a = tryEMT $ runApp app
     
-    env <- initalEnv
+    env <- initalEnv title
 
     (eResult, st') <- evalRWST a env (initialState { appTitle = title })
     print $ show st'
@@ -87,12 +95,13 @@ execApplication title app = do
         startup = do
             initGlfw
             registerGlobalErrorCallback
-        shutdown = destroyAllWindows >> terminateGlfw
+
+        shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 createWindow width height title = do
-    win <- glfw $ liftM fromJust $ mkWindow width height title
+    win <- mkWindow width height title
     registerAllWindowCallbacks win
     addWindow win
     return win
@@ -119,7 +128,7 @@ windowByHandle wh = do
         mw   = find (\w -> winHandle w == wh) wins
     case mw of
         Just w -> return w
-        Nothing -> throw InternalException
+        Nothing -> throw . InternalException . toException $ InvalidWindowHandleException
 
 
 
@@ -144,7 +153,7 @@ destroyAllWindows = do
 --------------------------------------------------------------------------------
 
 
-pollEvent :: (Throws ApplicationException l, Throws InternalException l) => Application l (Maybe Event)
+pollEvent :: (Throws InternalException l) => Application l (Maybe Event)
 pollEvent = do
     pollEvents
     queue <- asks appEventQ
@@ -162,16 +171,21 @@ addWindow win@Window{..} =
         in st{ appWindows = wins' }
 
 
-
-io :: (Throws ApplicationException l) => IO a -> Application l a
-io m = wrapException IOException $ liftIO m
-
-
 -- TODO: efficent version
 -- lookup and delete value
 retrieve :: ByteString -> Trie a -> (Maybe a, Trie a)
 retrieve q tri = (T.lookup q tri, T.delete q tri)
 
 
-
+{-# INLINE mkWindow #-}
+mkWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
+mkWindow width height title = do
+    wh <- createWindowHandle width height title Nothing Nothing
+    logger <- getWindowLogger wh
+    return $ Window title (width, height) wh logger
+    where
+        getWindowLogger wh = do
+            appLogger <- asks appLogger
+            let loggerName = fst appLogger ++ "." ++ (show wh)
+            io $ (loggerName,) <$> getLogger loggerName
 

@@ -20,6 +20,7 @@ Flag library-only
 library
   exposed-modules:     Yage.Core.Application
                        Yage.Core.Application.Exception
+                       Yage.Core.Application.Utils
   
   other-modules:       Yage.Core.GLFW.Base
                        Yage.Core.GLFW.Window
@@ -34,6 +35,9 @@ library
                        , control-monad-exception == 0.10.*
                        , stm                     == 2.4.*
 
+                        --- custom version
+                       , hslogger                == 1.2.3
+                       , text-format-simple      == 1.*
                        , bytestring              == 0.10.*
                        , GLFW-b                  == 1.2.*
                        , bytestring-trie         == 0.2.*
