@@ -44,6 +44,8 @@ import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
 import           Control.Concurrent.STM          (newTQueueIO, tryReadTQueue, atomically)
 
+import           System.IO                       (stderr)
+
 import qualified Graphics.UI.GLFW                as GLFW (Window)
 
 import           Yage.Core.Application.Exception
@@ -93,10 +95,16 @@ execApplication title app = do
             return x
 
         startup = do
+            setupLogging
             initGlfw
             registerGlobalErrorCallback
 
         shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
+
+        setupLogging = io $ do
+            h <- streamHandler stderr DEBUG >>= \lh -> return $
+                 setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+            updateGlobalLogger rootLoggerName (setHandlers [h])
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window

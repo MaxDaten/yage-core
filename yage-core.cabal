@@ -21,6 +21,7 @@ library
   exposed-modules:     Yage.Core.Application
                        Yage.Core.Application.Exception
                        Yage.Core.Application.Utils
+                       Yage.Core.Application.Logging
   
   other-modules:       Yage.Core.GLFW.Base
                        Yage.Core.GLFW.Window

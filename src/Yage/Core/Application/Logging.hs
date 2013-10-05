@@ -4,13 +4,23 @@ module Yage.Core.Application.Logging
     ( Logger
     , getAppLogger, getWinLogger
     , logM, debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM
+    
     , Logger.Priority(..), Logger.getLogger, Logger.removeAllHandlers
+    , Logger.setHandlers, Logger.addHandler, Logger.rootLoggerName, Logger.setLevel, Logger.getLevel
+    , Logger.updateGlobalLogger, Logger.saveGlobalLogger
+    
+    , LogHandler.LogHandler, LogHandler.setFormatter
+    , Formatter.simpleLogFormatter
+    , HandlerSimple.streamHandler
     ) where
 
 import           Control.Monad.Reader            (asks)
 
 import           System.Log.Logger               (Logger, logL)
 import qualified System.Log.Logger               as Logger
+import qualified System.Log.Handler              as LogHandler
+import qualified System.Log.Handler.Simple       as HandlerSimple
+import qualified System.Log.Formatter            as Formatter
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception

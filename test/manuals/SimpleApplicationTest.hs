@@ -4,6 +4,7 @@ module Main where
 
 import Control.Monad.Exception
 import Yage.Core.Application
+import Yage.Core.Application.Logging
 
 import Control.Monad (unless, when)
 import Data.Maybe (isJust)
@@ -35,4 +36,4 @@ main = do
             when (isJust me) processEvents
 
         processEvent Nothing = return ()
-        processEvent (Just e) = io $ print e
+        processEvent (Just e) = warningM $ show e
