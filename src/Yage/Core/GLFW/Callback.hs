@@ -14,6 +14,15 @@ module Yage.Core.GLFW.Callback
     , setMousePositionCallback
     , setMouseEnterCallback
     , setScrollCallback
+
+    , setErrorCallback
+    , WindowPositionCallback, GLFW.WindowSizeCallback, GLFW.WindowCloseCallback, GLFW.WindowRefreshCallback
+    , GLFW.WindowFocusCallback, GLFW.WindowIconifyCallback, GLFW.FramebufferSizeCallback
+    , GLFW.KeyCallback, GLFW.CharCallback
+    , GLFW.MouseButtonCallback, MousePositionCallback, MouseEnterCallback, GLFW.ScrollCallback
+    , GLFW.ErrorCallback
+    , GLFW.FocusState, GLFW.IconifyState, GLFW.MouseButton, GLFW.MouseButtonState, GLFW.ModifierKeys
+    , GLFW.CursorState, GLFW.Key, GLFW.KeyState
     ) where
 
 import           Control.Monad.Exception
@@ -35,7 +44,7 @@ import           Yage.Core.GLFW.Base
 {-# INLINE setWindowFocusCallback     #-}
 {-# INLINE setWindowIconifyCallback   #-}
 {-# INLINE setFramebufferSizeCallback #-}
-setWindowPositionCallback  :: (Throws InternalException l) => Window -> Maybe GLFW.WindowPosCallback       -> Application l ()
+setWindowPositionCallback  :: (Throws InternalException l) => Window -> Maybe WindowPositionCallback       -> Application l ()
 setWindowSizeCallback      :: (Throws InternalException l) => Window -> Maybe GLFW.WindowSizeCallback      -> Application l ()
 setWindowCloseCallback     :: (Throws InternalException l) => Window -> Maybe GLFW.WindowCloseCallback     -> Application l ()
 setWindowRefreshCallback   :: (Throws InternalException l) => Window -> Maybe GLFW.WindowRefreshCallback   -> Application l ()
@@ -54,17 +63,17 @@ setFramebufferSizeCallback = windowCallbackMapping GLFW.setFramebufferSizeCallba
 --------------------------------------------------------------------------------
 -- input callbacks
 
-{-# INLINE setKeyCallback #-}
-{-# INLINE setCharCallback #-}
-{-# INLINE setMouseButtonCallback #-}
+{-# INLINE setKeyCallback           #-}
+{-# INLINE setCharCallback          #-}
+{-# INLINE setMouseButtonCallback   #-}
 {-# INLINE setMousePositionCallback #-}
-{-# INLINE setMouseEnterCallback #-}
-{-# INLINE setScrollCallback #-}
+{-# INLINE setMouseEnterCallback    #-}
+{-# INLINE setScrollCallback        #-}
 setKeyCallback           :: (Throws InternalException l) => Window -> Maybe GLFW.KeyCallback         -> Application l ()
 setCharCallback          :: (Throws InternalException l) => Window -> Maybe GLFW.CharCallback        -> Application l ()
 setMouseButtonCallback   :: (Throws InternalException l) => Window -> Maybe GLFW.MouseButtonCallback -> Application l ()
-setMousePositionCallback :: (Throws InternalException l) => Window -> Maybe GLFW.CursorPosCallback   -> Application l ()
-setMouseEnterCallback    :: (Throws InternalException l) => Window -> Maybe GLFW.CursorEnterCallback -> Application l ()
+setMousePositionCallback :: (Throws InternalException l) => Window -> Maybe MousePositionCallback    -> Application l ()
+setMouseEnterCallback    :: (Throws InternalException l) => Window -> Maybe MouseEnterCallback       -> Application l ()
 setScrollCallback        :: (Throws InternalException l) => Window -> Maybe GLFW.ScrollCallback      -> Application l ()
 
 setKeyCallback           = windowCallbackMapping GLFW.setKeyCallback
@@ -75,8 +84,20 @@ setMouseEnterCallback    = windowCallbackMapping GLFW.setCursorEnterCallback
 setScrollCallback        = windowCallbackMapping GLFW.setScrollCallback
 
 --------------------------------------------------------------------------------
+
+{-# INLINE setErrorCallback #-}
+setErrorCallback :: (Throws InternalException l) => Maybe GLFW.ErrorCallback -> Application l ()
+setErrorCallback = glfw . GLFW.setErrorCallback
+
+--------------------------------------------------------------------------------
 -- helper
 
 {-# INLINE windowCallbackMapping #-}
 windowCallbackMapping :: (Throws InternalException l) => (GLFW.Window -> t -> IO a) -> Window -> t -> Application l a
 windowCallbackMapping cbf win cb = glfw . (\w -> cbf w cb) . winHandle $ win
+
+-- type renaming
+type MousePositionCallback  = GLFW.CursorPosCallback
+type MouseEnterCallback     = GLFW.CursorEnterCallback
+type WindowPositionCallback = GLFW.WindowPosCallback
+
