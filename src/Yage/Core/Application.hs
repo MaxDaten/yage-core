@@ -101,10 +101,15 @@ execApplication title app = do
 
         shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
 
-        setupLogging = io $ do
-            h <- streamHandler stderr DEBUG >>= \lh -> return $
-                 setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
-            updateGlobalLogger rootLoggerName (setHandlers [h])
+        setupLogging = do
+            -- TODO enable DEBUG 
+            al <- asks $ fst . appLogger
+            io $ do
+                h <- streamHandler stderr DEBUG >>= \lh -> return $
+                     setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
+                
+                updateGlobalLogger al (setHandlers [h])
+                updateGlobalLogger rootLoggerName (setHandlers [h])
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window

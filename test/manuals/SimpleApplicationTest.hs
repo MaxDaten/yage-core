@@ -36,4 +36,7 @@ main = do
             when (isJust me) processEvents
 
         processEvent Nothing = return ()
-        processEvent (Just e) = warningM $ show e
+        processEvent (Just e) = do
+            warningM $ show e
+            errorM $ show e
+            debugM $ show e
