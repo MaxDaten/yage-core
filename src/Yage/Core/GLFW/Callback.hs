@@ -11,8 +11,8 @@ module Yage.Core.GLFW.Callback
     , setKeyCallback
     , setCharCallback
     , setMouseButtonCallback
-    , setCursorPositionCallback
-    , setCursorEnterCallback
+    , setMousePositionCallback
+    , setMouseEnterCallback
     , setScrollCallback
     ) where
 
@@ -70,13 +70,13 @@ setCharCallback = windowCallbackMapping GLFW.setCharCallback
 setMouseButtonCallback :: (Throws InternalException l) => Window -> Maybe GLFW.MouseButtonCallback -> Application l ()
 setMouseButtonCallback = windowCallbackMapping GLFW.setMouseButtonCallback
 
-{-# INLINE setCursorPositionCallback #-}
-setCursorPositionCallback :: (Throws InternalException l) =>  Window -> Maybe GLFW.CursorPosCallback -> Application l ()
-setCursorPositionCallback = windowCallbackMapping GLFW.setCursorPosCallback
+{-# INLINE setMousePositionCallback #-}
+setMousePositionCallback :: (Throws InternalException l) =>  Window -> Maybe GLFW.CursorPosCallback -> Application l ()
+setMousePositionCallback = windowCallbackMapping GLFW.setCursorPosCallback
 
-{-# INLINE setCursorEnterCallback #-}
-setCursorEnterCallback :: (Throws InternalException l) => Window -> Maybe GLFW.CursorEnterCallback -> Application l ()
-setCursorEnterCallback = windowCallbackMapping GLFW.setCursorEnterCallback
+{-# INLINE setMouseEnterCallback #-}
+setMouseEnterCallback :: (Throws InternalException l) => Window -> Maybe GLFW.CursorEnterCallback -> Application l ()
+setMouseEnterCallback = windowCallbackMapping GLFW.setCursorEnterCallback
 
 {-# INLINE setScrollCallback #-}
 setScrollCallback :: (Throws InternalException l) => Window -> Maybe GLFW.ScrollCallback -> Application l ()

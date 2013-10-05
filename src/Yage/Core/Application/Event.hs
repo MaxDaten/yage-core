@@ -1,14 +1,20 @@
+{-# LANGUAGE FlexibleContexts           #-}
+
 module Yage.Core.Application.Event
-    ( errorCallback, windowPositionCallback, windowSizeCallback, windowCloseCallback, windowRefreshCallback  
+    ( registerCallbacks
+    , errorCallback, windowPositionCallback, windowSizeCallback, windowCloseCallback, windowRefreshCallback  
     , windowFocusCallback, windowIconifyCallback, framebufferSizeCallback, mouseButtonCallback 
-    , cursorPositionCallback, cursorEnterCallback, scrollCallback, keyCallback, charCallback
+    , mousePositionCallback, mouseEnterCallback, scrollCallback, keyCallback, charCallback
     ) where
 
 import           Control.Concurrent.STM       (TQueue, atomically, writeTQueue)
+import           Control.Monad.Exception
 
 import qualified Graphics.UI.GLFW             as GLFW
 
 import           Yage.Core.Application.Types
+import           Yage.Core.Application.Exception
+import           Yage.Core.GLFW.Callback
 --------------------------------------------------------------------------------
 
 
@@ -39,11 +45,11 @@ framebufferSizeCallback tc win w h = queueEvent tc $ EventFramebufferSize win w 
 mouseButtonCallback :: TQueue Event -> GLFW.Window -> GLFW.MouseButton -> GLFW.MouseButtonState -> GLFW.ModifierKeys -> IO ()
 mouseButtonCallback tc win mb mba mk = queueEvent tc $ EventMouseButton win mb mba mk
 
-cursorPositionCallback :: TQueue Event -> GLFW.Window -> Double -> Double -> IO ()
-cursorPositionCallback tc win x y = queueEvent tc $ EventMousePosition win x y
+mousePositionCallback :: TQueue Event -> GLFW.Window -> Double -> Double -> IO ()
+mousePositionCallback tc win x y = queueEvent tc $ EventMousePosition win x y
 
-cursorEnterCallback :: TQueue Event -> GLFW.Window -> GLFW.CursorState -> IO ()
-cursorEnterCallback tc win ca = queueEvent tc $ EventMouseEnter win ca
+mouseEnterCallback :: TQueue Event -> GLFW.Window -> GLFW.CursorState -> IO ()
+mouseEnterCallback tc win ca = queueEvent tc $ EventMouseEnter win ca
 
 scrollCallback :: TQueue Event -> GLFW.Window -> Double -> Double -> IO ()
 scrollCallback tc win x y = queueEvent tc $ EventMouseScroll win x y
@@ -58,3 +64,24 @@ charCallback tc win c = queueEvent tc $ EventChar win c
 
 queueEvent :: TQueue Event -> Event -> IO ()
 queueEvent tc = atomically . (writeTQueue tc)
+
+--
+
+registerCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Application l ()
+registerCallbacks win tq = do
+    -- annoying setup
+    setWindowPositionCallback   win $ Just $ windowPositionCallback tq
+    setWindowSizeCallback       win $ Just $ windowSizeCallback tq
+    setWindowCloseCallback      win $ Just $ windowCloseCallback tq
+    setWindowRefreshCallback    win $ Just $ windowRefreshCallback tq
+    setWindowFocusCallback      win $ Just $ windowFocusCallback tq
+    setWindowIconifyCallback    win $ Just $ windowIconifyCallback tq
+    setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback tq
+    
+    setKeyCallback              win $ Just $ keyCallback tq
+    setCharCallback             win $ Just $ charCallback tq
+    
+    setMouseButtonCallback      win $ Just $ mouseButtonCallback tq
+    setMousePositionCallback    win $ Just $ mousePositionCallback tq
+    setMouseEnterCallback       win $ Just $ mouseEnterCallback tq
+    setScrollCallback           win $ Just $ scrollCallback tq

@@ -49,9 +49,9 @@ data Event = EventError             !GLFW.Error !String
            | EventWindowFocus       !GLFW.Window !GLFW.FocusState
            | EventWindowIconify     !GLFW.Window !GLFW.IconifyState
            | EventFramebufferSize   !GLFW.Window !Int !Int
-           | EventMouseButton       !GLFW.Window !GLFW.MouseButton !GLFW.MouseButtonState !GLFW.ModifierKeys
            | EventMousePosition     !GLFW.Window !Double !Double
            | EventMouseEnter        !GLFW.Window !GLFW.CursorState
+           | EventMouseButton       !GLFW.Window !GLFW.MouseButton !GLFW.MouseButtonState !GLFW.ModifierKeys
            | EventMouseScroll       !GLFW.Window !Double !Double
            | EventKey               !GLFW.Window !GLFW.Key !Int !GLFW.KeyState !GLFW.ModifierKeys
            | EventChar              !GLFW.Window !Char

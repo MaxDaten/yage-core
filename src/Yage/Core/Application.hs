@@ -51,7 +51,6 @@ import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
 import           Yage.Core.GLFW.Event
-import           Yage.Core.GLFW.Callback
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Types     as Event (Event)
 import           Yage.Core.Application.Event
@@ -100,8 +99,7 @@ createWindow width height title = do
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
             tq <- asks appEventQ
-            setWindowPositionCallback win $ Just $ windowPositionCallback tq
-            setCursorPositionCallback win $ Just $ cursorPositionCallback tq
+            registerCallbacks win tq
 
 
 

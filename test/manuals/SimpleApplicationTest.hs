@@ -8,7 +8,8 @@ import Control.Monad (void)
 import Yage.Core.Application
 import Yage.Core.Application.Exception
 
-import Control.Monad (unless)
+import Control.Monad (unless, when)
+import Data.Maybe (isJust)
 
 
 main :: IO ()
@@ -36,6 +37,7 @@ main = do
         processEvents = do
             me <- pollEvent
             processEvent me
+            when (isJust me) processEvents
 
         processEvent Nothing = return ()
         processEvent (Just e) = io $ print e
