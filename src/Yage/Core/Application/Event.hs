@@ -1,16 +1,17 @@
 {-# LANGUAGE FlexibleContexts           #-}
 
 module Yage.Core.Application.Event
-    ( registerCallbacks
+    ( registerWindowCallbacks, registerGlobalErrorCallback
     , errorCallback, windowPositionCallback, windowSizeCallback, windowCloseCallback, windowRefreshCallback  
     , windowFocusCallback, windowIconifyCallback, framebufferSizeCallback, mouseButtonCallback 
     , mousePositionCallback, mouseEnterCallback, scrollCallback, keyCallback, charCallback
     ) where
 
-import           Control.Concurrent.STM       (TQueue, atomically, writeTQueue)
+import           Control.Concurrent.STM         (TQueue, atomically, writeTQueue)
 import           Control.Monad.Exception
+import           Control.Monad.Reader           (asks)
 
-import qualified Graphics.UI.GLFW             as GLFW (Window)
+import qualified Graphics.UI.GLFW               as GLFW (Window)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
@@ -33,30 +34,35 @@ scrollCallback          :: TQueue Event -> GLFW.Window -> Double -> Double  -> I
 keyCallback             :: TQueue Event -> GLFW.Window -> Key -> Int -> KeyState -> ModifierKeys -> IO ()
 charCallback            :: TQueue Event -> GLFW.Window -> Char              -> IO ()
 
-errorCallback           tc e s            = queueEvent tc $ EventError e s
-windowPositionCallback  tc win x y        = queueEvent tc $ EventWindowPosition win x y
-windowSizeCallback      tc win w h        = queueEvent tc $ EventWindowSize win w h
-windowCloseCallback     tc win            = queueEvent tc $ EventWindowClose win
-windowRefreshCallback   tc win            = queueEvent tc $ EventWindowRefresh win
-windowFocusCallback     tc win fa         = queueEvent tc $ EventWindowFocus win fa
-windowIconifyCallback   tc win ia         = queueEvent tc $ EventWindowIconify win ia
-framebufferSizeCallback tc win w h        = queueEvent tc $ EventFramebufferSize win w h
-mouseButtonCallback     tc win mb mba mk  = queueEvent tc $ EventMouseButton win mb mba mk
-mousePositionCallback   tc win x y        = queueEvent tc $ EventMousePosition win x y
-mouseEnterCallback      tc win ca         = queueEvent tc $ EventMouseEnter win ca
-scrollCallback          tc win x y        = queueEvent tc $ EventMouseScroll win x y
-keyCallback             tc win k sc ka mk = queueEvent tc $ EventKey win k sc ka mk
-charCallback            tc win c          = queueEvent tc $ EventChar win c
+errorCallback           tc e s            = queueEvent tc $ Event'Error e s
+windowPositionCallback  tc win x y        = queueEvent tc $ Event'WindowPosition win x y
+windowSizeCallback      tc win w h        = queueEvent tc $ Event'WindowSize win w h
+windowCloseCallback     tc win            = queueEvent tc $ Event'WindowClose win
+windowRefreshCallback   tc win            = queueEvent tc $ Event'WindowRefresh win
+windowFocusCallback     tc win fa         = queueEvent tc $ Event'WindowFocus win fa
+windowIconifyCallback   tc win ia         = queueEvent tc $ Event'WindowIconify win ia
+framebufferSizeCallback tc win w h        = queueEvent tc $ Event'FramebufferSize win w h
+mouseButtonCallback     tc win mb mba mk  = queueEvent tc $ Event'MouseButton win mb mba mk
+mousePositionCallback   tc win x y        = queueEvent tc $ Event'MousePosition win x y
+mouseEnterCallback      tc win ca         = queueEvent tc $ Event'MouseEnter win ca
+scrollCallback          tc win x y        = queueEvent tc $ Event'MouseScroll win x y
+keyCallback             tc win k sc ka mk = queueEvent tc $ Event'Key win k sc ka mk
+charCallback            tc win c          = queueEvent tc $ Event'Char win c
 
 --------------------------------------------------------------------------------
 
 queueEvent :: TQueue Event -> Event -> IO ()
 queueEvent tc = atomically . (writeTQueue tc)
 
---
+--------------------------------------------------------------------------------
 
-registerCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Application l ()
-registerCallbacks win tq = do
+registerGlobalErrorCallback :: (Throws InternalException l) => Application l ()
+registerGlobalErrorCallback = do
+    eventQ <- asks appEventQ
+    setErrorCallback $ Just $ errorCallback eventQ
+
+registerWindowCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Application l ()
+registerWindowCallbacks win tq = do
     -- annoying setup
     setWindowPositionCallback   win $ Just $ windowPositionCallback tq
     setWindowSizeCallback       win $ Just $ windowSizeCallback tq

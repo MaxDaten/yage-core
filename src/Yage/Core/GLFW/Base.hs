@@ -20,7 +20,7 @@ glfw m = wrapException GLFWException $ liftIO m
 
 
 {-# INLINE initGlfw #-}
-initGlfw :: (Throws InternalException l) => Application l ()
+initGlfw :: (Throws InternalException l) =>Application l ()
 initGlfw = do
     inited <- glfw $ GLFW.init
     unless inited (throw $ GLFWException . toException $ InitException)

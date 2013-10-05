@@ -41,19 +41,19 @@ data ApplicationEnv = ApplicationEnv
 
 
 -- mainly inspired by glfw-b-demo
-data Event = EventError             !GLFW.Error !String
-           | EventWindowPosition    !GLFW.Window !Int !Int
-           | EventWindowSize        !GLFW.Window !Int !Int
-           | EventWindowClose       !GLFW.Window
-           | EventWindowRefresh     !GLFW.Window
-           | EventWindowFocus       !GLFW.Window !GLFW.FocusState
-           | EventWindowIconify     !GLFW.Window !GLFW.IconifyState
-           | EventFramebufferSize   !GLFW.Window !Int !Int
-           | EventMousePosition     !GLFW.Window !Double !Double
-           | EventMouseEnter        !GLFW.Window !GLFW.CursorState
-           | EventMouseButton       !GLFW.Window !GLFW.MouseButton !GLFW.MouseButtonState !GLFW.ModifierKeys
-           | EventMouseScroll       !GLFW.Window !Double !Double
-           | EventKey               !GLFW.Window !GLFW.Key !Int !GLFW.KeyState !GLFW.ModifierKeys
-           | EventChar              !GLFW.Window !Char
+data Event = Event'Error             !GLFW.Error !String
+           | Event'WindowPosition    !GLFW.Window !Int !Int
+           | Event'WindowSize        !GLFW.Window !Int !Int
+           | Event'WindowClose       !GLFW.Window
+           | Event'WindowRefresh     !GLFW.Window
+           | Event'WindowFocus       !GLFW.Window !GLFW.FocusState
+           | Event'WindowIconify     !GLFW.Window !GLFW.IconifyState
+           | Event'FramebufferSize   !GLFW.Window !Int !Int
+           | Event'MousePosition     !GLFW.Window !Double !Double
+           | Event'MouseEnter        !GLFW.Window !GLFW.CursorState
+           | Event'MouseButton       !GLFW.Window !GLFW.MouseButton !GLFW.MouseButtonState !GLFW.ModifierKeys
+           | Event'MouseScroll       !GLFW.Window !Double !Double
+           | Event'Key               !GLFW.Window !GLFW.Key !Int !GLFW.KeyState !GLFW.ModifierKeys
+           | Event'Char              !GLFW.Window !Char
            deriving (Typeable, Show)
 

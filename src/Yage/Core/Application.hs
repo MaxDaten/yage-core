@@ -86,6 +86,7 @@ execApplication title app = do
 
         startup = do
             initGlfw
+            registerGlobalErrorCallback
         shutdown = destroyAllWindows >> terminateGlfw
 
 
@@ -99,8 +100,7 @@ createWindow width height title = do
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
             tq <- asks appEventQ
-            registerCallbacks win tq
-
+            registerWindowCallbacks win tq
 
 
 
