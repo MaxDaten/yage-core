@@ -39,6 +39,8 @@ import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
 import           Yage.Core.Application.Utils
 
+--------------------------------------------------------------------------------
+
 getAppLogger :: Application l Logger
 getAppLogger = asks $ snd . appLogger
 

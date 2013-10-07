@@ -10,6 +10,7 @@
 
 module Yage.Core.Application.Types
     ( Application, Window(..), ApplicationState(..), ApplicationEnv(..), Event(..)
+    , ApplicationConfig(..)
     , GLFW.FocusState
     , GLFW.IconifyState
     , GLFW.MouseButton, GLFW.MouseButtonState
@@ -28,6 +29,7 @@ import           Control.Monad.Writer
 import           Data.Trie                    (Trie)
 
 import           System.Log.Logger            (Logger)
+import qualified System.Log.Logger            as Logger (Priority)
 import           Text.Format
 
 import qualified Graphics.UI.GLFW             as GLFW
@@ -56,8 +58,13 @@ data ApplicationState = ApplicationState
 
 data ApplicationEnv = ApplicationEnv
     { appEventQ :: TQueue Event
+    , appConfig :: ApplicationConfig
     , appLogger :: (String, Logger) -- | Logger-Name and Logger
     }
+
+
+data ApplicationConfig = ApplicationConfig
+    { confLogPriority :: Logger.Priority }
 
 
 -- mainly inspired by glfw-b-demo

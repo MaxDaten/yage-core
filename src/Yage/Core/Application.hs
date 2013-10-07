@@ -37,7 +37,7 @@ import qualified Data.Trie                       as T (delete, empty, insert,
 import           Data.List                       (find)
 import           Data.Char                       (isAlphaNum)
 
-import           Control.Applicative             ((<$>), (<*>))
+import           Control.Applicative             ((<$>), (<*>), pure)
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
@@ -68,12 +68,15 @@ initialState = ApplicationState
 initalEnv :: String -> IO (ApplicationEnv)
 initalEnv title = 
     let loggerName = "app." ++ clearAppTitle title
-    in ApplicationEnv 
-                <$> newTQueueIO
-                <*> ((loggerName,) <$> getLogger loggerName)
+        config = ApplicationConfig WARNING
+    in ApplicationEnv
+            <$> newTQueueIO
+            <*> pure config
+            <*> ((loggerName,) <$> getLogger loggerName)
     where
         clearAppTitle :: String -> String
         clearAppTitle = filter (isAlphaNum)
+
 
 
 execApplication :: (l ~ AnyException) => String -> Application l b -> IO b
@@ -102,14 +105,14 @@ execApplication title app = do
         shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
 
         setupLogging = do
-            -- TODO enable DEBUG 
-            al <- asks $ fst . appLogger
+            conf <- asks appConfig
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
                      setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
                 
-                updateGlobalLogger al (setHandlers [h])
+                -- TOD set only app logger                 
                 updateGlobalLogger rootLoggerName (setHandlers [h])
+                updateGlobalLogger rootLoggerName (setLevel $ confLogPriority conf)
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
