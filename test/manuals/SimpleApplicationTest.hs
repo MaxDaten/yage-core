@@ -12,7 +12,8 @@ import Data.Maybe (isJust)
 
 main :: IO ()
 main = do
-    r <- execApplication "simple test app" app
+    let conf = ApplicationConfig DEBUG
+    r <- execApplication "simple test app" conf app
     print r
     where
         app :: Application AnyException Int
@@ -37,6 +38,4 @@ main = do
 
         processEvent Nothing = return ()
         processEvent (Just e) = do
-            warningM $ show e
-            errorM $ show e
             debugM $ show e

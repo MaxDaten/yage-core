@@ -1,19 +1,15 @@
+{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE RankNTypes           #-}
 
 module Yage.Core.Application.Logging
-    ( Logger
-    , getAppLogger, getWinLogger
+    ( getAppLogger, getWinLogger
     , logM, debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM
     , coloredLogFormatter
-    
-    , Logger.Priority(..), Logger.getLogger, Logger.removeAllHandlers
-    , Logger.setHandlers, Logger.addHandler, Logger.rootLoggerName, Logger.setLevel, Logger.getLevel
-    , Logger.updateGlobalLogger, Logger.saveGlobalLogger
-    
-    , LogHandler.LogHandler, LogHandler.setFormatter
-    -- , Formatter.simpleLogFormatter
-    , HandlerSimple.streamHandler
+
+    , module Logger
+    , module HandlerSimple
+    , module Format
     ) where
 
 import           Data.List                       (isPrefixOf)
@@ -21,9 +17,11 @@ import           Data.List                       (isPrefixOf)
 import           Control.Monad.Reader            (asks)
 
 import           System.Log.Logger               (Logger, logL)
-import qualified System.Log.Logger               as Logger
-import qualified System.Log.Handler              as LogHandler
-import qualified System.Log.Handler.Simple       as HandlerSimple
+import           System.Log.Logger               as Logger ( Logger, Priority(..), getLogger, getRootLogger
+                                                   , removeAllHandlers, setHandlers, addHandler
+                                                   , rootLoggerName, setLevel, getLevel, updateGlobalLogger
+                                                   , saveGlobalLogger, logL)
+import           System.Log.Handler.Simple       as HandlerSimple
 import qualified System.Log.Formatter            as Formatter
 
 import           System.Console.ANSI
@@ -33,11 +31,10 @@ import           System.Locale (defaultTimeLocale)
 import           Data.Time (getZonedTime,getCurrentTime,formatTime)
 import           Control.Applicative ((<$>))
 
-
-
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
 import           Yage.Core.Application.Utils
+import           Text.Format                    as Format
 
 --------------------------------------------------------------------------------
 

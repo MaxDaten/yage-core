@@ -22,6 +22,7 @@ library
                        Yage.Core.Application.Exception
                        Yage.Core.Application.Utils
                        Yage.Core.Application.Logging
+                       Yage.Core.Application.LogHandler
   
   other-modules:       Yage.Core.GLFW.Base
                        Yage.Core.GLFW.Window

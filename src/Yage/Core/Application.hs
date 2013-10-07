@@ -17,7 +17,7 @@
 
 
 module Yage.Core.Application
-    ( Application
+    ( Application, ApplicationConfig(..)
     , execApplication
     , Window, createWindow, windowByTitle, windowByHandle, destroyWindow
     , pollEvent
@@ -56,6 +56,7 @@ import           Yage.Core.Application.Types
 import           Yage.Core.Application.Types     as Event (Event)
 import           Yage.Core.Application.Event
 import           Yage.Core.Application.Logging
+import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
 --------------------------------------------------------------------------------
 
@@ -65,13 +66,12 @@ initialState = ApplicationState
     , app'windows = T.empty
     }
 
-initalEnv :: String -> IO (ApplicationEnv)
-initalEnv title = 
+initalEnv :: String -> ApplicationConfig -> IO (ApplicationEnv)
+initalEnv title conf = 
     let loggerName = "app." ++ clearAppTitle title
-        config = ApplicationConfig WARNING
     in ApplicationEnv
             <$> newTQueueIO
-            <*> pure config
+            <*> pure conf
             <*> ((loggerName,) <$> getLogger loggerName)
     where
         clearAppTitle :: String -> String
@@ -79,17 +79,22 @@ initalEnv title =
 
 
 
-execApplication :: (l ~ AnyException) => String -> Application l b -> IO b
-execApplication title app = do
+execApplication :: (Show b, l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
+execApplication title conf app = do
     let a = tryEMT $ runApp app
+    rootL <- getRootLogger
     
-    env <- initalEnv title
+    env <- initalEnv title conf
 
     (eResult, st') <- evalRWST a env (initialState { app'title = title })
-    print $ show st'
+    
+    logL rootL NOTICE $ format "Final state:[{0}]" [show st']
+
     case eResult of
-        Right result -> return result
-        Left ex -> error $ show ex
+        Right result -> removeAllHandlers >> return result
+        Left ex -> do
+            logL rootL CRITICAL $ format "exception" [show ex]
+            error $ show ex
     where
         runApp app = do
             startup
@@ -102,13 +107,13 @@ execApplication title app = do
             initGlfw
             registerGlobalErrorCallback
 
-        shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
+        shutdown = destroyAllWindows >> terminateGlfw
 
         setupLogging = do
             prio <- asks $ conf'logPriority . app'config
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
-                     setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
+                     LogHandler.setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
                 
                 -- TODO set only app logger                 
                 updateGlobalLogger rootLoggerName (setHandlers [h])
