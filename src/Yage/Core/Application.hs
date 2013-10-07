@@ -61,8 +61,8 @@ import           Yage.Core.Application.Utils
 
 initialState :: ApplicationState
 initialState = ApplicationState
-    { appTitle = ""
-    , appWindows = T.empty
+    { app'title = ""
+    , app'windows = T.empty
     }
 
 initalEnv :: String -> IO (ApplicationEnv)
@@ -85,7 +85,7 @@ execApplication title app = do
     
     env <- initalEnv title
 
-    (eResult, st') <- evalRWST a env (initialState { appTitle = title })
+    (eResult, st') <- evalRWST a env (initialState { app'title = title })
     print $ show st'
     case eResult of
         Right result -> return result
@@ -105,14 +105,14 @@ execApplication title app = do
         shutdown = destroyAllWindows >> terminateGlfw >> io removeAllHandlers
 
         setupLogging = do
-            conf <- asks appConfig
+            prio <- asks $ conf'logPriority . app'config
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
                      setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
                 
-                -- TOD set only app logger                 
+                -- TODO set only app logger                 
                 updateGlobalLogger rootLoggerName (setHandlers [h])
-                updateGlobalLogger rootLoggerName (setLevel $ confLogPriority conf)
+                updateGlobalLogger rootLoggerName (setLevel prio)
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
@@ -124,14 +124,14 @@ createWindow width height title = do
     where 
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
-            tq <- asks appEventQ
+            tq <- asks app'eventQ
             registerWindowCallbacks win tq
 
 
 
 windowByTitle :: String -> Application l (Maybe Window)
 windowByTitle title = do
-    wins <- gets appWindows
+    wins <- gets app'windows
     return $ T.lookup (BS.pack title) wins
 
 
@@ -139,9 +139,9 @@ windowByTitle title = do
 -- TODO effective version
 windowByHandle :: (Throws InternalException l) => GLFW.Window -> Application l Window
 windowByHandle wh = do
-    ws <- gets appWindows
+    ws <- gets app'windows
     let wins = T.toListBy (flip const) ws
-        mw   = find (\w -> winHandle w == wh) wins
+        mw   = find (\w -> win'handle w == wh) wins
     case mw of
         Just w -> return w
         Nothing -> throw . InternalException . toException $ InvalidWindowHandleException
@@ -150,20 +150,20 @@ windowByHandle wh = do
 
 
 destroyWindow :: (Throws InternalException l) => Window -> Application l ()
-destroyWindow Window{winTitle} = do
+destroyWindow Window{win'title} = do
     appState <- get
-    let (mwin, wins') = retrieve (BS.pack winTitle) $ appWindows appState
+    let (mwin, wins') = retrieve (BS.pack win'title) $ app'windows appState
     maybe (return ()) directlyDestroyWindow mwin
-    put appState{ appWindows = wins' }
+    put appState{ app'windows = wins' }
 
 
 
 destroyAllWindows :: (Throws InternalException l) => Application l ()
 destroyAllWindows = do
     appState <- get
-    let wins = T.toListBy (\_key win -> win) $ appWindows appState
+    let wins = T.toListBy (\_key win -> win) $ app'windows appState
     mapM_ directlyDestroyWindow wins
-    put appState{ appWindows = T.empty}
+    put appState{ app'windows = T.empty}
 
 
 --------------------------------------------------------------------------------
@@ -172,7 +172,7 @@ destroyAllWindows = do
 pollEvent :: (Throws InternalException l) => Application l (Maybe Event)
 pollEvent = do
     pollEvents
-    queue <- asks appEventQ
+    queue <- asks app'eventQ
     mevent <- io $ atomically $ tryReadTQueue queue
     return mevent
 
@@ -183,8 +183,8 @@ pollEvent = do
 addWindow :: Window -> Application l ()
 addWindow win@Window{..} =
     modify $ \st ->
-        let wins' = T.insert (BS.pack winTitle) win (appWindows st)
-        in st{ appWindows = wins' }
+        let wins' = T.insert (BS.pack win'title) win (app'windows st)
+        in st{ app'windows = wins' }
 
 
 -- TODO: efficent version
@@ -201,7 +201,7 @@ mkWindow width height title = do
     return $ Window title (width, height) wh logger
     where
         getWindowLogger wh = do
-            appLogger <- asks appLogger
+            appLogger <- asks app'logger
             let loggerName = fst appLogger ++ "." ++ (show wh)
             io $ (loggerName,) <$> getLogger loggerName
 

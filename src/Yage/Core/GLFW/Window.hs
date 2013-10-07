@@ -18,27 +18,27 @@ import           Yage.Core.GLFW.Base
 --------------------------------------------------------------------------------
 {-# INLINE iconifyWindow #-}
 iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
-iconifyWindow = glfw . GLFW.iconifyWindow . winHandle
+iconifyWindow = glfw . GLFW.iconifyWindow . win'handle
 
 {-# INLINE makeContextCurrent #-}
 makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
-makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
+makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (win'handle <$> mwin)
 
 {-# INLINE directlyDestroyWindow #-}
 directlyDestroyWindow :: (Throws InternalException l) => Window -> Application l ()
-directlyDestroyWindow = glfw . GLFW.destroyWindow . winHandle
+directlyDestroyWindow = glfw . GLFW.destroyWindow . win'handle
 
 {-# INLINE swapBuffers #-}
 swapBuffers :: (Throws InternalException l) => Window -> Application l ()
-swapBuffers = glfw . GLFW.swapBuffers . winHandle
+swapBuffers = glfw . GLFW.swapBuffers . win'handle
 
 {-# INLINE windowShouldClose #-}
 windowShouldClose :: (Throws InternalException l) => Window -> Application l Bool
-windowShouldClose = glfw . GLFW.windowShouldClose . winHandle
+windowShouldClose = glfw . GLFW.windowShouldClose . win'handle
 
 {-# INLINE setWindowShouldClose #-}
 setWindowShouldClose :: (Throws InternalException l) => Window -> Bool -> Application l ()
-setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . winHandle $ win
+setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . win'handle $ win
 
 createWindowHandle :: (Throws InternalException l) => Int -> Int -> String -> Maybe GLFW.Monitor -> Maybe GLFW.Window -> Application l GLFW.Window
 createWindowHandle width height title mMon mWin = do
@@ -48,4 +48,4 @@ createWindowHandle width height title mMon mWin = do
         Nothing -> throw . InternalException . toException $ WindowCreationException
 
 withWindowHandle :: (Throws InternalException l) => Window -> (GLFW.Window -> Application l a) -> Application l a
-withWindowHandle win f = f $ winHandle win
+withWindowHandle win f = f $ win'handle win

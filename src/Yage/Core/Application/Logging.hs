@@ -42,10 +42,10 @@ import           Yage.Core.Application.Utils
 --------------------------------------------------------------------------------
 
 getAppLogger :: Application l Logger
-getAppLogger = asks $ snd . appLogger
+getAppLogger = asks $ snd . app'logger
 
 getWinLogger :: Window -> Logger
-getWinLogger = snd . winLogger
+getWinLogger = snd . win'logger
 
 debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM :: (Throws InternalException l) => String -> Application l ()
 

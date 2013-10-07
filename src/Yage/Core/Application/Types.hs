@@ -39,32 +39,32 @@ type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
 
 
 data Window = Window
-    { winTitle  :: !String
-    , winSize   :: !(Int, Int)
-    , winHandle :: !GLFW.Window
-    , winLogger :: (String, Logger) -- | Logger-Name and Logger
+    { win'title  :: !String
+    , win'size   :: !(Int, Int)
+    , win'handle :: !GLFW.Window
+    , win'logger :: (String, Logger) -- | Logger-Name and Logger
     }
 
 instance Show Window where
-    show Window {winTitle, winSize} =
-        format "Window: {0} - Size: {1}" [winTitle, show winSize]
+    show Window {win'title, win'size} =
+        format "Window: {0} - Size: {1}" [win'title, show win'size]
 
 
 data ApplicationState = ApplicationState
-    { appTitle   :: !String
-    , appWindows :: Trie (Window)
+    { app'title   :: !String
+    , app'windows :: Trie (Window)
     }
     deriving (Show)
 
 data ApplicationEnv = ApplicationEnv
-    { appEventQ :: TQueue Event
-    , appConfig :: ApplicationConfig
-    , appLogger :: (String, Logger) -- | Logger-Name and Logger
+    { app'eventQ :: TQueue Event
+    , app'config :: ApplicationConfig
+    , app'logger :: (String, Logger) -- | Logger-Name and Logger
     }
 
 
 data ApplicationConfig = ApplicationConfig
-    { confLogPriority :: Logger.Priority }
+    { conf'logPriority :: Logger.Priority }
 
 
 -- mainly inspired by glfw-b-demo

@@ -58,7 +58,7 @@ queueEvent tc = atomically . (writeTQueue tc)
 
 registerGlobalErrorCallback :: (Throws InternalException l) => Application l ()
 registerGlobalErrorCallback = do
-    eventQ <- asks appEventQ
+    eventQ <- asks app'eventQ
     setErrorCallback $ Just $ errorCallback eventQ
 
 registerWindowCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Application l ()
