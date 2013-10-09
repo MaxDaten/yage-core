@@ -25,8 +25,9 @@ module Yage.Core.GLFW.Callback
     , GLFW.CursorState, GLFW.Key, GLFW.KeyState
     ) where
 
-import           Control.Monad.Exception
+import Yage.Prelude
 
+import           Control.Monad.Exception
 import qualified Graphics.UI.GLFW as GLFW
 
 import           Yage.Core.Application.Types

@@ -17,9 +17,10 @@
 
 
 module Yage.Core.Application
-    ( Application, ApplicationConfig(..)
+    ( Application, ApplicationConfig(..), WindowHint(..), OpenGLProfile(..)
     , execApplication
     , Window, createWindow, windowByTitle, windowByHandle, destroyWindow
+    , withWindowAsCurrent, withWindowHints, createWindowWithHints
     , pollEvent
     , io
 
@@ -28,16 +29,16 @@ module Yage.Core.Application
     ) where
 
 --------------------------------------------------------------------------------
+import           Yage.Prelude
 
-import           Data.ByteString                 (ByteString)
 import qualified Data.ByteString.Char8           as BS (pack)
 import           Data.Trie                       (Trie)
 import qualified Data.Trie                       as T (delete, empty, insert,
                                                        lookup, toListBy)
-import           Data.List                       (find)
+import           Data.List                       (find, (++), filter)
 import           Data.Char                       (isAlphaNum)
 
-import           Control.Applicative             ((<$>), (<*>), pure)
+import           Control.Monad                   (mapM, mapM_, liftM)
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
@@ -79,7 +80,7 @@ initalEnv title conf =
 
 
 
-execApplication :: (Show b, l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
+execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
 execApplication title conf app = do
     let a = tryEMT $ runApp app
     rootL <- getRootLogger
@@ -105,7 +106,8 @@ execApplication title conf app = do
         startup = do
             setupLogging
             initGlfw
-            registerGlobalErrorCallback
+            debugM . ("glfw-version: " ++) . show =<< getGLFWVersion
+            registerGlobalErrorCallback =<< Just <$> getAppLogger
 
         shutdown = destroyAllWindows >> terminateGlfw
 
@@ -125,13 +127,27 @@ createWindow width height title = do
     win <- mkWindow width height title
     registerAllWindowCallbacks win
     addWindow win
+    withWindowAsCurrent win $ \win -> mapM_ (debugM . winS win) =<< windowInfo win
     return win
     where 
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
             tq <- asks app'eventQ
-            registerWindowCallbacks win tq
+            ml <- Just <$> getAppLogger
+            registerWindowCallbacks win tq ml
+        winS :: Window -> ShowS
+        winS win = ((show . win'handle $ win) ++)
 
+createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l Window
+createWindowWithHints hints width height title = withWindowHints hints $ \_ -> createWindow width height title
+
+
+withWindowAsCurrent :: (Throws InternalException l) => Window -> (Window -> Application l a) -> Application l a
+withWindowAsCurrent win f = do
+    makeContextCurrent $ Just win
+    r <- f win
+    makeContextCurrent Nothing
+    return r
 
 
 windowByTitle :: String -> Application l (Maybe Window)
@@ -178,7 +194,7 @@ pollEvent :: (Throws InternalException l) => Application l (Maybe Event)
 pollEvent = do
     pollEvents
     queue <- asks app'eventQ
-    mevent <- io $ atomically $ tryReadTQueue queue
+    mevent <- ioe $ atomically $ tryReadTQueue queue
     return mevent
 
 --------------------------------------------------------------------------------
@@ -208,5 +224,20 @@ mkWindow width height title = do
         getWindowLogger wh = do
             appLogger <- asks app'logger
             let loggerName = fst appLogger ++ "." ++ (show wh)
-            io $ (loggerName,) <$> getLogger loggerName
+            ioe $ (loggerName,) <$> getLogger loggerName
 
+-- TODO maybe make current
+windowInfo :: (Throws InternalException l) => Window -> Application l [String]
+windowInfo win = do
+    api <- getWindowClientAPI win
+    ver <- getWindowContextGLVersion win
+    prof <- getWindowGLProfile win
+    return [show api, show ver, show prof]
+
+
+withWindowHints :: (Throws InternalException l) => [WindowHint] -> ([WindowHint] -> Application l a) -> Application l a
+withWindowHints hints ma = do
+    setGlobalWindowHints hints
+    r <- ma hints
+    revertGlobalWindowHints
+    return r

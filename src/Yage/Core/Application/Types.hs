@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveDataTypeable     #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE RecordWildCards        #-}
@@ -9,7 +9,7 @@
 
 
 module Yage.Core.Application.Types
-    ( Application, Window(..), ApplicationState(..), ApplicationEnv(..), Event(..)
+    ( Application, Window(..), ApplicationState(..), ApplicationEnv(..), Event(..), WindowHandle
     , ApplicationConfig(..)
     , GLFW.FocusState
     , GLFW.IconifyState
@@ -17,8 +17,10 @@ module Yage.Core.Application.Types
     , GLFW.CursorState
     , GLFW.Key, GLFW.KeyState, GLFW.ModifierKeys
     , GLFW.Error
+    , GLFW.WindowHint(..), GLFW.OpenGLProfile(..)
     ) where
 
+import           Yage.Prelude
 import           Data.Data
 import           Control.Monad.Exception
 import           Control.Concurrent.STM       (TQueue)
@@ -30,18 +32,18 @@ import           Data.Trie                    (Trie)
 
 import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
-import           Text.Format
 
 import qualified Graphics.UI.GLFW             as GLFW
 
 
 type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
 
+type WindowHandle = GLFW.Window
 
 data Window = Window
     { win'title  :: !String
     , win'size   :: !(Int, Int)
-    , win'handle :: !GLFW.Window
+    , win'handle :: !WindowHandle
     , win'logger :: (String, Logger) -- | Logger-Name and Logger
     }
 
@@ -82,7 +84,7 @@ data Event = Event'Error             !GLFW.Error !String
            | Event'MouseScroll       !GLFW.Window !Double !Double
            | Event'Key               !GLFW.Window !GLFW.Key !Int !GLFW.KeyState !GLFW.ModifierKeys
            | Event'Char              !GLFW.Window !Char
-           deriving (Typeable, Show, Data)
+           deriving (Typeable, Show, Ord, Eq, Data)
 
 
 

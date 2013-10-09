@@ -12,7 +12,8 @@ module Yage.Core.Application.Logging
     , module Format
     ) where
 
-import           Data.List                       (isPrefixOf)
+import           Yage.Prelude
+import           Data.List                       ((++), drop, length, isPrefixOf)
 
 import           Control.Monad.Reader            (asks)
 
@@ -29,7 +30,6 @@ import           Control.Concurrent (myThreadId)
 import           System.Posix.Process (getProcessID)
 import           System.Locale (defaultTimeLocale)
 import           Data.Time (getZonedTime,getCurrentTime,formatTime)
-import           Control.Applicative ((<$>))
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
@@ -59,7 +59,7 @@ emergencyM = logM Logger.EMERGENCY
 logM :: (Throws InternalException l) => Logger.Priority -> String -> Application l ()
 logM pri msg = do
     l <- getAppLogger
-    io $ logL l pri msg
+    ioe $ logL l pri msg
 
 --------------------------------------------------------------------------------
 

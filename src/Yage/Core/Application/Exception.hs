@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE ExistentialQuantification  #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -9,7 +9,9 @@ module Yage.Core.Application.Exception
     , module Ex
     ) where
 
+import           Yage.Prelude
 import           Control.Monad.Exception as Ex
+import qualified Graphics.UI.GLFW        as GLFW (Error)
 
 
 
@@ -20,10 +22,10 @@ data ApplicationException
 
 data InternalException
     = InternalException SomeException
-    | WindowCreationException
+    | WindowCreationException String
     | InvalidWindowHandleException
     | IOException SomeException
-    | GLFWException SomeException
+    | GLFWException GLFW.Error
     deriving (Show, Typeable)
 
 
