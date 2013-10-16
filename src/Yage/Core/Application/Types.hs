@@ -22,6 +22,7 @@ module Yage.Core.Application.Types
 
 import           Yage.Prelude
 import           Data.Data
+import           Data.Version                 (Version)
 import           Control.Monad.Exception
 import           Control.Concurrent.STM       (TQueue)
 import           Control.Monad.RWS.Strict     (RWST)
@@ -34,6 +35,7 @@ import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
 
 import qualified Graphics.UI.GLFW             as GLFW
+
 
 
 type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
@@ -59,9 +61,10 @@ data ApplicationState = ApplicationState
     deriving (Show)
 
 data ApplicationEnv = ApplicationEnv
-    { app'eventQ :: TQueue Event
-    , app'config :: ApplicationConfig
-    , app'logger :: (String, Logger) -- | Logger-Name and Logger
+    { app'eventQ  :: TQueue Event
+    , app'config  :: ApplicationConfig
+    , app'logger  :: (String, Logger) -- | Logger-Name and Logger
+    , coreversion :: Version
     }
 
 

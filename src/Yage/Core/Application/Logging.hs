@@ -38,6 +38,8 @@ import           Text.Format                    as Format
 
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+
 getAppLogger :: Application l Logger
 getAppLogger = asks $ snd . app'logger
 
@@ -67,8 +69,8 @@ coloredLogFormatter :: forall a. String -> Formatter.LogFormatter a
 coloredLogFormatter = formatter
     where
         formatter :: String -> Formatter.LogFormatter a
-        formatter format _ (prio,msg) loggername = 
-            let vars = 
+        formatter format _ (prio,msg) loggername =
+            let vars =
                     [("time", formatTime defaultTimeLocale timeFormat <$> getZonedTime)
                    ,("utcTime", formatTime defaultTimeLocale timeFormat <$> getCurrentTime)
                    ,("msg", return msg)

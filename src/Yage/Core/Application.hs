@@ -61,6 +61,8 @@ import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
 --------------------------------------------------------------------------------
 
+import Paths_yage_core
+
 initialState :: ApplicationState
 initialState = ApplicationState
     { app'title = ""
@@ -68,12 +70,13 @@ initialState = ApplicationState
     }
 
 initalEnv :: String -> ApplicationConfig -> IO (ApplicationEnv)
-initalEnv title conf = 
+initalEnv title conf =
     let loggerName = "app." ++ clearAppTitle title
     in ApplicationEnv
             <$> newTQueueIO
             <*> pure conf
             <*> ((loggerName,) <$> getLogger loggerName)
+            <*> pure version
     where
         clearAppTitle :: String -> String
         clearAppTitle = filter (isAlphaNum)
@@ -82,19 +85,19 @@ initalEnv title conf =
 
 execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
 execApplication title conf app = do
-    let a = tryEMT $ runApp app
-    rootL <- getRootLogger
-    
-    env <- initalEnv title conf
+    let a   = tryEMT $ runApp app
+    rootL   <- getRootLogger
+    env     <- initalEnv title conf
 
     (eResult, st') <- evalRWST a env (initialState { app'title = title })
-    
+
     logL rootL NOTICE $ format "Final state:[{0}]" [show st']
 
     case eResult of
-        Right result -> removeAllHandlers >> return result
-        Left ex -> do
-            logL rootL CRITICAL $ format "exception" [show ex]
+        Right result ->
+            removeAllHandlers >> return result
+        Left ex      -> do
+            logL rootL CRITICAL $ format ">> Application ended unexpectedly with: {0}" [show ex]
             error $ show ex
     where
         runApp app = do
@@ -106,7 +109,8 @@ execApplication title conf app = do
         startup = do
             setupLogging
             initGlfw
-            debugM . ("glfw-version: " ++) . show =<< getGLFWVersion
+            debugM . ("yage-core version: " ++) . show =<< asks coreversion
+            debugM . ("glfw-version: " ++)      . show =<< getGLFWVersion
             registerGlobalErrorCallback =<< Just <$> getAppLogger
 
         shutdown = destroyAllWindows >> terminateGlfw
@@ -116,8 +120,8 @@ execApplication title conf app = do
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
                      LogHandler.setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
-                
-                -- TODO set only app logger                 
+
+                -- TODO set only app logger
                 updateGlobalLogger rootLoggerName (setHandlers [h])
                 updateGlobalLogger rootLoggerName (setLevel prio)
 
@@ -129,12 +133,11 @@ createWindow width height title = do
     addWindow win
     withWindowAsCurrent win $ \win -> mapM_ (debugM . winS win) =<< windowInfo win
     return win
-    where 
+    where
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
             tq <- asks app'eventQ
-            ml <- Just <$> getAppLogger
-            registerWindowCallbacks win tq ml
+            registerWindowCallbacks win tq $ Just $ getWinLogger win
         winS :: Window -> ShowS
         winS win = ((show . win'handle $ win) ++)
 
