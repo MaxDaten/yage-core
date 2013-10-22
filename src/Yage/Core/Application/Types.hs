@@ -20,7 +20,7 @@ module Yage.Core.Application.Types
     , GLFW.WindowHint(..), GLFW.OpenGLProfile(..)
     ) where
 
-import           Yage.Prelude
+import           Yage.Prelude                 hiding (pass)
 import           Data.Data
 import           Data.Version                 (Version)
 import           Control.Monad.Exception
