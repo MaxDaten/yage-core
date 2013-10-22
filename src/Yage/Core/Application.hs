@@ -38,7 +38,7 @@ import qualified Data.Trie                       as T (delete, empty, insert,
 import           Data.List                       (find, (++), filter)
 import           Data.Char                       (isAlphaNum)
 
-import           Control.Monad                   (mapM, mapM_, liftM)
+import           Control.Monad                   (mapM_)
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
@@ -47,14 +47,14 @@ import           Control.Concurrent.STM          (newTQueueIO, tryReadTQueue, at
 
 import           System.IO                       (stderr)
 
-import qualified Graphics.UI.GLFW                as GLFW (Window)
+--import qualified Graphics.UI.GLFW                as GLFW (Window)
 
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
 import           Yage.Core.GLFW.Event
 import           Yage.Core.Application.Types
-import           Yage.Core.Application.Types     as Event (Event)
+import           Yage.Core.Application.Types     as Event hiding (Application, Window)
 import           Yage.Core.Application.Event
 import           Yage.Core.Application.Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
@@ -161,7 +161,7 @@ windowByTitle title = do
 
 
 -- TODO effective version
-windowByHandle :: (Throws InternalException l) => GLFW.Window -> Application l Window
+windowByHandle :: (Throws InternalException l) => WindowHandle -> Application l Window
 windowByHandle wh = do
     ws <- gets app'windows
     let wins = T.toListBy (flip const) ws

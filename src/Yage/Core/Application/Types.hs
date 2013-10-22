@@ -11,13 +11,7 @@
 module Yage.Core.Application.Types
     ( Application, Window(..), ApplicationState(..), ApplicationEnv(..), Event(..), WindowHandle
     , ApplicationConfig(..)
-    , GLFW.FocusState
-    , GLFW.IconifyState
-    , GLFW.MouseButton, GLFW.MouseButtonState
-    , GLFW.CursorState
-    , GLFW.Key, GLFW.KeyState, GLFW.ModifierKeys
-    , GLFW.Error
-    , GLFW.WindowHint(..), GLFW.OpenGLProfile(..)
+    , module Events
     ) where
 
 import           Yage.Prelude                 hiding (pass)
@@ -34,7 +28,11 @@ import           Data.Trie                    (Trie)
 import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
 
-import qualified Graphics.UI.GLFW             as GLFW
+import qualified Graphics.UI.GLFW             as GLFW (Window)
+import           Graphics.UI.GLFW             as Events ( FocusState(..), IconifyState, MouseButton, MouseButtonState
+                                              , CursorState, Key(..), KeyState, ModifierKeys, Error
+                                              , WindowHint(..), OpenGLProfile(..)
+                                              )
 
 
 
@@ -73,20 +71,20 @@ data ApplicationConfig = ApplicationConfig
 
 
 -- mainly inspired by glfw-b-demo
-data Event = Event'Error             !GLFW.Error !String
-           | Event'WindowPosition    !GLFW.Window !Int !Int
-           | Event'WindowSize        !GLFW.Window !Int !Int
-           | Event'WindowClose       !GLFW.Window
-           | Event'WindowRefresh     !GLFW.Window
-           | Event'WindowFocus       !GLFW.Window !GLFW.FocusState
-           | Event'WindowIconify     !GLFW.Window !GLFW.IconifyState
-           | Event'FramebufferSize   !GLFW.Window !Int !Int
-           | Event'MousePosition     !GLFW.Window !Double !Double
-           | Event'MouseEnter        !GLFW.Window !GLFW.CursorState
-           | Event'MouseButton       !GLFW.Window !GLFW.MouseButton !GLFW.MouseButtonState !GLFW.ModifierKeys
-           | Event'MouseScroll       !GLFW.Window !Double !Double
-           | Event'Key               !GLFW.Window !GLFW.Key !Int !GLFW.KeyState !GLFW.ModifierKeys
-           | Event'Char              !GLFW.Window !Char
+data Event = Event'Error             !Error !String
+           | Event'WindowPosition    !WindowHandle !Int !Int
+           | Event'WindowSize        !WindowHandle !Int !Int
+           | Event'WindowClose       !WindowHandle
+           | Event'WindowRefresh     !WindowHandle
+           | Event'WindowFocus       !WindowHandle !FocusState
+           | Event'WindowIconify     !WindowHandle !IconifyState
+           | Event'FramebufferSize   !WindowHandle !Int !Int
+           | Event'MousePosition     !WindowHandle !Double !Double
+           | Event'MouseEnter        !WindowHandle !CursorState
+           | Event'MouseButton       !WindowHandle !MouseButton !MouseButtonState !ModifierKeys
+           | Event'MouseScroll       !WindowHandle !Double !Double
+           | Event'Key               !WindowHandle !Key !Int !KeyState !ModifierKeys
+           | Event'Char              !WindowHandle !Char
            deriving (Typeable, Show, Ord, Eq, Data)
 
 
