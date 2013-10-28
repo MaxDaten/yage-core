@@ -34,7 +34,7 @@ library
                        Yage.Core.Application.Event
   -- other-extensions:    
   build-depends:         base                     < 5
-                       , yage-contrib            == 0.0.0.3
+                       , yage-contrib            >= 0.0.0.3
                        , transformers            == 0.3.*
                        , mtl                     == 2.1.*
                        , control-monad-exception == 0.10.*
