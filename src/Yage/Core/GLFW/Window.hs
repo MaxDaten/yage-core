@@ -18,27 +18,27 @@ import           Yage.Core.GLFW.Base
 --------------------------------------------------------------------------------
 {-# INLINE iconifyWindow #-}
 iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
-iconifyWindow = glfw . GLFW.iconifyWindow . win'handle
+iconifyWindow = glfw . GLFW.iconifyWindow . winHandle
 
 {-# INLINE makeContextCurrent #-}
 makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
-makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (win'handle <$> mwin)
+makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
 
 {-# INLINE directlyDestroyWindow #-}
 directlyDestroyWindow :: (Throws InternalException l) => Window -> Application l ()
-directlyDestroyWindow = glfw . GLFW.destroyWindow . win'handle
+directlyDestroyWindow = glfw . GLFW.destroyWindow . winHandle
 
 {-# INLINE swapBuffers #-}
 swapBuffers :: (Throws InternalException l) => Window -> Application l ()
-swapBuffers = glfw . GLFW.swapBuffers . win'handle
+swapBuffers = glfw . GLFW.swapBuffers . winHandle
 
 {-# INLINE windowShouldClose #-}
 windowShouldClose :: (Throws InternalException l) => Window -> Application l Bool
-windowShouldClose = glfw . GLFW.windowShouldClose . win'handle
+windowShouldClose = glfw . GLFW.windowShouldClose . winHandle
 
 {-# INLINE setWindowShouldClose #-}
 setWindowShouldClose :: (Throws InternalException l) => Window -> Bool -> Application l ()
-setWindowShouldClose win b = glfw . (\w -> GLFW.setWindowShouldClose w b) . win'handle $ win
+setWindowShouldClose win b = glfw . (`GLFW.setWindowShouldClose` b) . winHandle $ win
 
 setGlobalWindowHints :: (Throws InternalException l) => [GLFW.WindowHint] -> Application l ()
 setGlobalWindowHints = mapM_ (glfw . GLFW.windowHint)
@@ -48,17 +48,17 @@ revertGlobalWindowHints = glfw GLFW.defaultWindowHints
 
 {-# INLINE getWindowClientAPI #-}
 getWindowClientAPI :: (Throws InternalException l) => Window -> Application l GLFW.ClientAPI
-getWindowClientAPI = glfw . GLFW.getWindowClientAPI . win'handle
+getWindowClientAPI = glfw . GLFW.getWindowClientAPI . winHandle
 
 getWindowContextGLVersion :: (Throws InternalException l) => Window -> Application l GLFW.Version
 getWindowContextGLVersion win = withWindowHandle win $ \wh ->
     GLFW.Version
-        <$> (glfw $ GLFW.getWindowContextVersionMajor wh)
-        <*> (glfw $ GLFW.getWindowContextVersionMinor wh)
-        <*> (glfw $ GLFW.getWindowContextVersionRevision wh)
+        <$> glfw (GLFW.getWindowContextVersionMajor wh)
+        <*> glfw (GLFW.getWindowContextVersionMinor wh)
+        <*> glfw (GLFW.getWindowContextVersionRevision wh)
 
 getWindowGLProfile :: (Throws InternalException l) => Window -> Application l GLFW.OpenGLProfile
-getWindowGLProfile = glfw . GLFW.getWindowOpenGLProfile . win'handle
+getWindowGLProfile = glfw . GLFW.getWindowOpenGLProfile . winHandle
 
 createWindowHandle :: (Throws InternalException l) => Int -> Int -> String -> Maybe GLFW.Monitor -> Maybe GLFW.Window -> Application l GLFW.Window
 createWindowHandle width height title mMon mWin = do
@@ -68,4 +68,4 @@ createWindowHandle width height title mMon mWin = do
         Nothing -> throw $ WindowCreationException "no window created"
 
 withWindowHandle :: (Throws InternalException l) => Window -> (GLFW.Window -> Application l a) -> Application l a
-withWindowHandle win f = f $ win'handle win
+withWindowHandle win f = f $ winHandle win

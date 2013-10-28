@@ -16,6 +16,7 @@ import           Yage.Prelude
 import           Data.List                       ((++), drop, length, isPrefixOf)
 
 import           Control.Monad.Reader            (asks)
+import           Control.Monad                   (liftM)
 
 import           System.Log.Logger               (Logger, logL)
 import           System.Log.Logger               as Logger ( Logger, Priority(..), getLogger, getRootLogger
@@ -41,10 +42,10 @@ import           Text.Format                    as Format
 --------------------------------------------------------------------------------
 
 getAppLogger :: Application l Logger
-getAppLogger = asks $ snd . app'logger
+getAppLogger = asks $ snd . appLogger
 
 getWinLogger :: Window -> Logger
-getWinLogger = snd . win'logger
+getWinLogger = snd . winLogger
 
 debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM :: (Throws InternalException l) => String -> Application l ()
 
@@ -80,7 +81,7 @@ coloredLogFormatter = formatter
                    ,("pid", show <$> getProcessID)
                    ]
                 color = msgColor prio
-            in (\s -> color ++ s ++ reset) <$> (replaceVarM vars format)
+            in (\s -> color ++ s ++ reset) <$> replaceVarM vars format
         msgColor prio
             | prio == Logger.DEBUG   = debugColor
             | prio == Logger.WARNING = warnColor
@@ -105,7 +106,7 @@ replaceVarM _ [] = return []
 replaceVarM keyVals (s:ss) | s=='$' = do (f,rest) <- replaceStart keyVals ss
                                          repRest <- replaceVarM keyVals rest
                                          return $ f ++ repRest
-                           | otherwise = replaceVarM keyVals ss >>= return . (s:)
+                           | otherwise = liftM (s:) $ replaceVarM keyVals ss
     where
       replaceStart [] str = return ("$",str)
       replaceStart ((k,v):kvs) str | k `isPrefixOf` str = do vs <- v
