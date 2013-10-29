@@ -214,7 +214,7 @@ mkWindow width height title = do
     return $ Window title (width, height) wh logger
     where
         getWindowLogger wh = do
-            appLogger <- asks appLogger
+            appLogger      <- asks appLogger
             let loggerName = fst appLogger ++ "." ++ show wh
             ioe $ (loggerName,) <$> getLogger loggerName
 

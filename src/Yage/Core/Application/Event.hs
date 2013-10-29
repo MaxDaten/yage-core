@@ -1,14 +1,16 @@
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 
 module Yage.Core.Application.Event where
 
 import           Yage.Prelude
 
-import           Control.Monad                  (liftM)
+import           Control.Monad                  (liftM, sequence, join)
 import           Control.Monad.Reader           (asks)
 import           Control.Concurrent.STM         (TQueue, atomically, tryReadTQueue)
 
-import           Data.Set
+import           Data.Set                       hiding (map)
+import           Data.List                      (map)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Utils
@@ -21,6 +23,9 @@ import           Yage.Core.GLFW.Event
 
 --------------------------------------------------------------------------------
 
+class EventHandler a b where
+    handleEvent :: (Throws ApplicationException l) => a -> Event -> Application l b
+
 
 --------------------------------------------------------------------------------
 
@@ -30,6 +35,8 @@ pollOneEvent = do
     pollEvents
     queue <- asks appEventQ
     ioe $ atomically $ tryReadTQueue queue
+
+
 
 processEventsWith :: (Throws InternalException l, Throws ApplicationException l)
                   => (Event -> Application l a) -> Application l ([a])
@@ -42,18 +49,33 @@ processEventsWith handler = pollOneEvent >>= processEvent' []
             processEvent' (a:as) =<< pollOneEvent
 
 
-collectEvents :: (Throws InternalException l, Throws ApplicationException l) => Application l (Set Event)
+
+multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
+                => [h] -> Application l [b]
+multiplexEvents hs = liftM join $ processEventsWith $ flip multiplex hs
+    where
+        multiplex :: (Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
+        multiplex e = sequence . map (`handleEvent` e)
+
+
+
+collectEvents :: (Throws InternalException l, Throws ApplicationException l)
+              => Application l (Set Event)
 collectEvents = liftM fromList $ processEventsWith return
+
 
 
 internalProcessEvent :: (Throws InternalException l) => Event -> Application l ()
 internalProcessEvent e = debugM $ show e
 
 
+
 registerGlobalErrorCallback :: (Throws InternalException l) => Maybe Logger -> Application l ()
 registerGlobalErrorCallback ml = do
     eventQ <- asks appEventQ
     setErrorCallback $ Just $ errorCallback eventQ ml
+
+
 
 registerWindowCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Maybe Logger -> Application l ()
 registerWindowCallbacks win tq ml = do
