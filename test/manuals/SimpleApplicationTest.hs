@@ -32,7 +32,7 @@ main = do
             unless quit (loop win)
 
         processEvents = do
-            me <- pollEvent
+            me <- pollOneEvent
             processEvent me
             when (isJust me) processEvents
 

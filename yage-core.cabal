@@ -23,6 +23,7 @@ library
                        Yage.Core.Application.Utils
                        Yage.Core.Application.Logging
                        Yage.Core.Application.LogHandler
+                       Yage.Core.Application.Event
   
   other-modules:       Paths_yage_core
                        Yage.Core.GLFW.Base
@@ -31,11 +32,12 @@ library
                        Yage.Core.GLFW.Callback
                        Yage.Core.Application.Types
                        Yage.Core.Application.EventTypes
-                       Yage.Core.Application.Event
+                       Yage.Core.Application.Internal.Event
   -- other-extensions:    
   build-depends:         base                     < 5
                        , yage-contrib            >= 0.0.0.3
                        , transformers            == 0.3.*
+                       , containers              >  0.5      &&  < 0.6
                        , mtl                     == 2.1.*
                        , control-monad-exception == 0.10.*
                        , stm                     == 2.4.*

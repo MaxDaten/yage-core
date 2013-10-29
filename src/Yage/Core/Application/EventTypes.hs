@@ -12,8 +12,8 @@ import Data.Data
 import Control.Lens
 
 import qualified Graphics.UI.GLFW             as GLFW (Window)
-import           Graphics.UI.GLFW             as GLFWEventTypes ( FocusState(..), IconifyState, MouseButton, MouseButtonState
-                                              , CursorState, KeyState, ModifierKeys, Error, Key(..))
+import           Graphics.UI.GLFW             as GLFWEventTypes ( FocusState(..), IconifyState(..), MouseButton(..), MouseButtonState(..)
+                                              , CursorState(..), KeyState(..), ModifierKeys(..), Error(..), Key(..))
 
 
 

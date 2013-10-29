@@ -20,7 +20,7 @@ module Yage.Core.Application
     ( execApplication
     , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
-    , pollEvent
+    , pollOneEvent, processEventsWith, collectEvents
     , io
 
     , module Event
@@ -43,7 +43,7 @@ import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
-import           Control.Concurrent.STM          (newTQueueIO, tryReadTQueue, atomically)
+import           Control.Concurrent.STM          (newTQueueIO)
 
 import           System.IO                       (stderr)
 
@@ -52,7 +52,6 @@ import           System.IO                       (stderr)
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
-import           Yage.Core.GLFW.Event
 import           Yage.Core.Application.Types     as Types
 import           Yage.Core.Application.Types     as Event hiding (Application, Window)
 import           Yage.Core.Application.Event
@@ -189,15 +188,6 @@ destroyAllWindows = do
     mapM_ directlyDestroyWindow wins
     put appState{ appWindows = T.empty}
 
-
---------------------------------------------------------------------------------
-
-
-pollEvent :: (Throws InternalException l) => Application l (Maybe Event)
-pollEvent = do
-    pollEvents
-    queue <- asks appEventQ
-    ioe $ atomically $ tryReadTQueue queue
 
 --------------------------------------------------------------------------------
 -- Helper
