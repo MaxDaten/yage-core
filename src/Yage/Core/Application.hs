@@ -18,6 +18,7 @@
 
 module Yage.Core.Application
     ( execApplication
+    , defaultAppConfig
     , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
     , pollOneEvent, handleEventsWith, collectEvents
@@ -81,14 +82,21 @@ initalEnv title conf =
         clearAppTitle = filter isAlphaNum
 
 
+defaultAppConfig :: ApplicationConfig
+defaultAppConfig = ApplicationConfig
+    { logPriority   = WARNING
+    , logFormatter  = coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg"
+    }
+
+
 
 execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
 execApplication title conf app = do
-    let a   = tryEMT $ runApp app
-    rootL   <- getRootLogger
-    env     <- initalEnv title conf
+    let theApp = tryEMT $ runApp app
+    rootL      <- getRootLogger
+    env        <- initalEnv title conf
 
-    (eResult, st') <- evalRWST a env (initialState { appTitle = title })
+    (eResult, st') <- evalRWST theApp env (initialState { appTitle = title })
 
     logL rootL NOTICE $ format "Final state:[{0}]" [show st']
 
@@ -115,10 +123,11 @@ execApplication title conf app = do
         shutdown = destroyAllWindows >> terminateGlfw
 
         setupLogging = do
-            prio <- asks $ confLogPriority . appConfig
+            prio <- asks $ logPriority . appConfig
+            fmt  <- asks $ logFormatter . appConfig
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
-                     LogHandler.setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
+                     LogHandler.setFormatter lh fmt
 
                 -- TODO set only app logger
                 updateGlobalLogger rootLoggerName (setHandlers [h])

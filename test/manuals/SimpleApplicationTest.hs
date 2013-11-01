@@ -12,7 +12,7 @@ import Data.Maybe (isJust)
 
 main :: IO ()
 main = do
-    let conf = ApplicationConfig DEBUG
+    let conf = defaultAppConfig{ logPriority = DEBUG }
     r <- execApplication "simple test app" conf app
     print r
     where

@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE RankNTypes           #-}
+
 
 
 module Yage.Core.Application.Types
@@ -28,10 +30,11 @@ import           Data.Trie                    (Trie)
 
 import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
+import           System.Log.Formatter         (LogFormatter)
 
 import qualified Graphics.UI.GLFW             as GLFW (WindowHint(..), OpenGLProfile(..), Window)
 
-import Yage.Core.Application.EventTypes       as EventTypes
+import           Yage.Core.Application.EventTypes       as EventTypes
 
 --------------------------------------------------------------------------------
 type GLFWError = Error
@@ -69,7 +72,9 @@ data ApplicationEnv = ApplicationEnv
 
 
 data ApplicationConfig = ApplicationConfig
-    { confLogPriority :: Logger.Priority }
+    { logPriority  :: Logger.Priority
+    , logFormatter :: forall a. LogFormatter a
+    }
 
 --------------------------------------------------------------------------------
 

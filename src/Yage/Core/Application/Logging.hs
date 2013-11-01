@@ -8,6 +8,7 @@ module Yage.Core.Application.Logging
     , coloredLogFormatter
 
     , module Logger
+    -- , module Formatter
     , module HandlerSimple
     , module Format
     ) where
