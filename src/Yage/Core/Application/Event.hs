@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Yage.Core.Application.Event where
 
@@ -23,10 +24,10 @@ import           Yage.Core.GLFW.Event
 
 --------------------------------------------------------------------------------
 
-class EventHandler a b where
-    handleEvent :: (Throws ApplicationException l) => a -> Event -> Application l b
+class EventHandler t a where
+    handleEvent :: t -> EventHandling a
 
-
+type EventHandling a = forall l. (Throws InternalException l, Throws ApplicationException l) => Event -> Application l a
 --------------------------------------------------------------------------------
 
 
@@ -38,13 +39,13 @@ pollOneEvent = do
 
 
 
-processEventsWith :: (Throws InternalException l, Throws ApplicationException l)
-                  => (Event -> Application l a) -> Application l ([a])
-processEventsWith handler = pollOneEvent >>= processEvent' []
+handleEventsWith :: (Throws InternalException l, Throws ApplicationException l)
+                  => EventHandling a -> Application l ([a])
+handleEventsWith handler = pollOneEvent >>= processEvent' []
     where
         processEvent' as Nothing = return as
         processEvent' as (Just e) = do
-            internalProcessEvent e
+            internalEventHandling e
             a <- handler e
             processEvent' (a:as) =<< pollOneEvent
 
@@ -52,21 +53,21 @@ processEventsWith handler = pollOneEvent >>= processEvent' []
 
 multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
                 => [h] -> Application l [b]
-multiplexEvents hs = liftM join $ processEventsWith $ flip multiplex hs
+multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
     where
-        multiplex :: (Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
+        multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
         multiplex e = sequence . map (`handleEvent` e)
 
 
 
 collectEvents :: (Throws InternalException l, Throws ApplicationException l)
               => Application l (Set Event)
-collectEvents = liftM fromList $ processEventsWith return
+collectEvents = liftM fromList $ handleEventsWith return
 
 
 
-internalProcessEvent :: (Throws InternalException l) => Event -> Application l ()
-internalProcessEvent e = debugM $ show e
+internalEventHandling :: EventHandling ()
+internalEventHandling e = debugM $ show e
 
 
 

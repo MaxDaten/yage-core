@@ -20,7 +20,7 @@ module Yage.Core.Application
     ( execApplication
     , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
-    , pollOneEvent, processEventsWith, collectEvents
+    , pollOneEvent, handleEventsWith, collectEvents
     , io
 
     , module Event
