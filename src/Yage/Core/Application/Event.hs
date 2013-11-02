@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
@@ -10,8 +11,12 @@ import           Control.Monad                  (liftM, sequence, join)
 import           Control.Monad.Reader           (asks)
 import           Control.Concurrent.STM         (TQueue, atomically, tryReadTQueue)
 
-import           Data.Set                       hiding (map)
-import           Data.List                      (map)
+import qualified Data.Map.Strict                as Map
+import qualified Data.Set                       as Set
+import           Data.List                      (map, foldr)
+import           Data.Maybe                     ()
+
+import           Control.Lens
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Utils
@@ -61,8 +66,8 @@ multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
 
 
 collectEvents :: (Throws InternalException l, Throws ApplicationException l)
-              => Application l (Set Event)
-collectEvents = liftM fromList $ handleEventsWith return
+              => Application l [Event]
+collectEvents = handleEventsWith return
 
 
 
@@ -98,3 +103,60 @@ registerWindowCallbacks win tq ml = do
     setScrollCallback           win $ Just $ scrollCallback tq ml
 
 --------------------------------------------------------------------------------
+
+
+
+data MouseState = MouseState
+    { _mousePosition :: (Double, Double) -- | screen coords relative to upper left corner
+    , _mouseButtons  :: Set Event
+    } deriving Show
+
+makeLenses ''MouseState
+
+type KeyboardState = Map Key Event
+
+type Axis = Double
+data JoystickState = JoystickState
+    { _joyButtons   :: Set Event
+    , _joyAxes      :: [Axis]
+    } deriving Show
+
+makeLenses ''JoystickState
+
+data InputState = InputState
+    { _keyboard :: KeyboardState        -- | current pressed keys
+    , _mouse    :: MouseState           -- | current pressed buttons and mouse position
+    , _joystick :: Maybe JoystickState  -- | current pressed buttons and axes
+    } deriving Show
+
+makeLenses ''InputState
+
+initialInputState :: InputState
+initialInputState = InputState
+    { _keyboard  = Map.empty
+    , _mouse     = MouseState (0,0) Set.empty
+    , _joystick  = Nothing --- JoystickState empty []
+    }
+
+
+updateInputState :: InputState -> [Event] -> InputState
+updateInputState = foldr insertIntoInputState
+
+
+-- | TODO repsect windows
+insertIntoInputState :: Event -> InputState -> InputState
+insertIntoInputState   (EventMousePosition _win d) = mouse.mousePosition .~ (d^.mousePosX, d^.mousePosY)
+insertIntoInputState e@(EventMouseButton   _win d) = mouse.mouseButtons  %~ (contains e .~ (d^.mouseButtonState == MouseButtonState'Pressed)) -- | so fucking awesome !
+insertIntoInputState e@(EventKey           _win d) = keyboard            %~ at (d^.key) .~ justPressed e
+insertIntoInputState _ = id
+
+justPressed :: Event -> Maybe Event
+justPressed e@(EventKey _win d)         = if d^.keyState == KeyState'Released        then Nothing else Just e
+justPressed e@(EventMouseButton _win d) = if d^.mouseButtonState == MouseButtonState'Pressed then Just e else Nothing
+justPressed _ = Nothing
+
+currentKeyState :: InputState -> Key -> Maybe Event
+currentKeyState inputState k = inputState^.keyboard.at k
+
+isPressed :: InputState -> Key -> Bool
+isPressed inputState k = isJust $ currentKeyState inputState k

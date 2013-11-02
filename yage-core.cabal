@@ -24,6 +24,7 @@ library
                        Yage.Core.Application.Logging
                        Yage.Core.Application.LogHandler
                        Yage.Core.Application.Event
+                       Yage.Core.Application.Loops
   
   other-modules:       Paths_yage_core
                        Yage.Core.GLFW.Base

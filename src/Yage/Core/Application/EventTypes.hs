@@ -122,6 +122,7 @@ data Event = EventError             !Error !String
     ISEVENT(EventChar)
 
 #define ISEVENT(eventname) \
+    is##eventname :: Event -> Bool; \
     is##eventname eventname##{} = True; \
     is##eventname _ = False; \
 

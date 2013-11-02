@@ -9,7 +9,7 @@ import           Yage.Core.Application.EventTypes
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Logging
 
-errorCallback           :: TQueue Event -> Maybe Logger -> GLFWError -> String                  -> IO ()
+errorCallback           :: TQueue Event -> Maybe Logger -> GLFWError -> String               -> IO ()
 windowPositionCallback  :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
 windowSizeCallback      :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
 windowCloseCallback     :: TQueue Event -> Maybe Logger -> WindowHandle                      -> IO ()

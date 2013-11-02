@@ -89,7 +89,6 @@ defaultAppConfig = ApplicationConfig
     }
 
 
-
 execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
 execApplication title conf app = do
     let theApp = tryEMT $ runApp app
@@ -116,8 +115,8 @@ execApplication title conf app = do
         startup = do
             setupLogging
             initGlfw
-            debugM . ("yage-core version: " ++) . show =<< asks coreversion
-            debugM . ("glfw-version: " ++)      . show =<< getGLFWVersion
+            infoM . ("yage-core version: " ++) . show =<< asks coreversion
+            infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
             registerGlobalErrorCallback =<< Just <$> getAppLogger
 
         shutdown = destroyAllWindows >> terminateGlfw
@@ -148,6 +147,7 @@ createWindow width height title = do
             registerWindowCallbacks win tq $ Just $ getWinLogger win
         winS :: Window -> ShowS
         winS win = ((show . winHandle $ win) ++)
+
 
 createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l Window
 createWindowWithHints hints width height title = withWindowHints hints $ \_ -> createWindow width height title
