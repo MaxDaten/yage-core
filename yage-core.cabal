@@ -32,8 +32,9 @@ library
                        Yage.Core.GLFW.Event
                        Yage.Core.GLFW.Callback
                        Yage.Core.Application.Types
-                       Yage.Core.Application.EventTypes
+                       Yage.Core.Application.Event.Types
                        Yage.Core.Application.Internal.Event
+                       Yage.Core.Application.Internal.Event.Types
   -- other-extensions:    
   build-depends:         base                     < 5
                        , yage-contrib            >= 0.0.0.3

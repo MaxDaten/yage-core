@@ -1,13 +1,27 @@
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+
 module Yage.Core.Application.Internal.Event where
 
 import           Yage.Prelude
 
+import           Data.List                      (map)
 
-import           Control.Concurrent.STM         (TQueue, atomically, writeTQueue)
+import           Control.Monad.Reader           (asks)
+import           Control.Monad                  (liftM, sequence, join)
+import           Control.Concurrent.STM         (TQueue, atomically, tryReadTQueue, writeTQueue)
 
-import           Yage.Core.Application.EventTypes
+import           Yage.Core.GLFW.Callback        hiding (Key)
+import           Yage.Core.GLFW.Event
+
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Logging
+import           Yage.Core.Application.Exception
+import           Yage.Core.Application.Utils
+
+--------------------------------------------------------------------------------
+
 
 errorCallback           :: TQueue Event -> Maybe Logger -> GLFWError -> String               -> IO ()
 windowPositionCallback  :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
@@ -50,3 +64,80 @@ queueEvent tc ml e = do
         logEvent :: Maybe Logger -> Event -> IO ()
         logEvent (Just l) e' = logL l NOTICE (show e')
         logEvent Nothing _ = return ()
+--------------------------------------------------------------------------------
+
+class EventHandler t a where
+    handleEvent :: t -> EventHandling a
+
+type EventHandling a = forall l. (Throws InternalException l, Throws ApplicationException l) => Event -> Application l a
+
+--------------------------------------------------------------------------------
+
+
+pollOneEvent :: (Throws InternalException l) => Application l (Maybe Event)
+pollOneEvent = do
+    pollEvents
+    queue <- asks appEventQ
+    ioe $ atomically $ tryReadTQueue queue
+
+
+
+handleEventsWith :: (Throws InternalException l, Throws ApplicationException l)
+                  => EventHandling a -> Application l ([a])
+handleEventsWith handler = pollOneEvent >>= processEvent' []
+    where
+        processEvent' as Nothing = return as
+        processEvent' as (Just e) = do
+            internalEventHandling e
+            a <- handler e
+            processEvent' (a:as) =<< pollOneEvent
+
+
+
+multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
+                => [h] -> Application l [b]
+multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
+    where
+        multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
+        multiplex e = sequence . map (`handleEvent` e)
+
+
+
+collectEvents :: (Throws InternalException l, Throws ApplicationException l)
+              => Application l [Event]
+collectEvents = handleEventsWith return
+
+
+
+internalEventHandling :: EventHandling ()
+internalEventHandling e = debugM $ show e
+
+
+
+registerGlobalErrorCallback :: (Throws InternalException l) => Maybe Logger -> Application l ()
+registerGlobalErrorCallback ml = do
+    eventQ <- asks appEventQ
+    setErrorCallback $ Just $ errorCallback eventQ ml
+
+
+
+registerWindowCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Maybe Logger -> Application l ()
+registerWindowCallbacks win tq ml = do
+    -- annoying setup
+    setWindowPositionCallback   win $ Just $ windowPositionCallback tq ml
+    setWindowSizeCallback       win $ Just $ windowSizeCallback tq ml
+    setWindowCloseCallback      win $ Just $ windowCloseCallback tq ml
+    setWindowRefreshCallback    win $ Just $ windowRefreshCallback tq ml
+    setWindowFocusCallback      win $ Just $ windowFocusCallback tq ml
+    setWindowIconifyCallback    win $ Just $ windowIconifyCallback tq ml
+    setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback tq ml
+
+    setKeyCallback              win $ Just $ keyCallback tq ml
+    setCharCallback             win $ Just $ charCallback tq ml
+
+    setMouseButtonCallback      win $ Just $ mouseButtonCallback tq ml
+    setMousePositionCallback    win $ Just $ mousePositionCallback tq ml
+    setMouseEnterCallback       win $ Just $ mouseEnterCallback tq ml
+    setScrollCallback           win $ Just $ scrollCallback tq ml
+
+--------------------------------------------------------------------------------

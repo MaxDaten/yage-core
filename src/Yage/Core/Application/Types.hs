@@ -34,7 +34,7 @@ import           System.Log.Formatter         (LogFormatter)
 
 import qualified Graphics.UI.GLFW             as GLFW (WindowHint(..), OpenGLProfile(..), Window)
 
-import           Yage.Core.Application.EventTypes       as EventTypes
+import           Yage.Core.Application.Internal.Event.Types as EventTypes
 
 --------------------------------------------------------------------------------
 type GLFWError = Error

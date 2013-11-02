@@ -1,9 +1,9 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP                    #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE DeriveDataTypeable     #-}
 {-# OPTIONS_GHC -pgmPcpphs -optP--cpp -optP-ansi #-}
-module Yage.Core.Application.EventTypes
-    ( module Yage.Core.Application.EventTypes
+module Yage.Core.Application.Internal.Event.Types
+    ( module Yage.Core.Application.Internal.Event.Types
     , module GLFWEventTypes
     ) where
 
@@ -16,8 +16,6 @@ import Control.Lens
 import qualified Graphics.UI.GLFW             as GLFW (Window)
 import           Graphics.UI.GLFW             as GLFWEventTypes ( FocusState(..), IconifyState(..), MouseButton(..), MouseButtonState(..)
                                               , CursorState(..), KeyState(..), ModifierKeys(..), Error(..), Key(..))
-
-
 
 data EWindowPosition = EWindowPosition
     { _winX             :: !Int
