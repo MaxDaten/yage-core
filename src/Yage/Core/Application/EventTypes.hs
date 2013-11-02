@@ -1,5 +1,7 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE DeriveDataTypeable     #-}
+{-# OPTIONS_GHC -pgmPcpphs -optP--cpp -optP-ansi #-}
 module Yage.Core.Application.EventTypes
     ( module Yage.Core.Application.EventTypes
     , module GLFWEventTypes
@@ -104,49 +106,26 @@ data Event = EventError             !Error !String
 
 -- some predicates
 
-isEventError, isEventWindowPosition, isEventWindowSize, isEventWindowClose  :: Event -> Bool
-isEventWindowRefresh, isEventWindowFocus, isEventWindowIconify, isEventFramebufferSize  :: Event -> Bool 
-isEventMousePosition, isEventMouseEnter, isEventMouseButton, isEventMouseScroll :: Event -> Bool
-isEventKey, isEventChar :: Event -> Bool
+#define DO(ISEVENT) \
+    ISEVENT(EventError) \
+    ISEVENT(EventWindowPosition) \
+    ISEVENT(EventWindowSize) \
+    ISEVENT(EventWindowClose) \
+    ISEVENT(EventWindowFocus) \
+    ISEVENT(EventWindowIconify) \
+    ISEVENT(EventFramebufferSize) \
+    ISEVENT(EventMousePosition) \
+    ISEVENT(EventMouseEnter) \
+    ISEVENT(EventMouseButton) \
+    ISEVENT(EventMouseScroll) \
+    ISEVENT(EventKey) \
+    ISEVENT(EventChar)
 
-isEventError            EventError{}           = True
-isEventError _                                 = False
+#define ISEVENT(eventname) \
+    is##eventname eventname##{} = True; \
+    is##eventname _ = False; \
 
-isEventWindowPosition   EventWindowPosition{}  = True
-isEventWindowPosition _                        = False
+DO(ISEVENT)
+#undef ISEVENT
+#undef DO
 
-isEventWindowIconify    EventWindowIconify{}   = True
-isEventWindowIconify _                         = False
-
-isEventWindowSize       EventWindowSize{}      = True
-isEventWindowSize _                            = False
-
-isEventWindowClose      EventWindowClose{}     = True
-isEventWindowClose _                           = False
-
-isEventWindowRefresh    EventWindowRefresh{}   = True
-isEventWindowRefresh _                         = False
-
-isEventWindowFocus      EventWindowFocus{}     = True
-isEventWindowFocus _                           = False
-
-isEventFramebufferSize  EventFramebufferSize{} = True
-isEventFramebufferSize _                       = False
-
-isEventMousePosition    EventMousePosition{}   = True
-isEventMousePosition _                         = False
-
-isEventMouseEnter       EventMousePosition{}   = True
-isEventMouseEnter _                            = False
-
-isEventMouseButton      EventMouseButton{}     = True
-isEventMouseButton _                           = False
-
-isEventMouseScroll      EventMouseScroll{}     = True
-isEventMouseScroll _                           = False
-
-isEventKey              EventKey{}             = True
-isEventKey _                                   = False
-
-isEventChar             EventChar{}            = True
-isEventChar _                                  = False
