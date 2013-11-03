@@ -25,7 +25,7 @@ updateInputState :: InputState -> [Event] -> InputState
 updateInputState = foldr insertIntoInputState
 
 
--- | TODO repsect windows
+-- | TODO respect windows
 insertIntoInputState :: Event -> InputState -> InputState
 insertIntoInputState   (EventMousePosition _win d) = mouse.mousePosition .~ (d^.mousePosX, d^.mousePosY)
 insertIntoInputState e@(EventMouseButton   _win d) = mouse.mouseButtons  %~ (contains e .~ (d^.mouseButtonState == MouseButtonState'Pressed)) -- | so fucking awesome !
