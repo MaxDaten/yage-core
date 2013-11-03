@@ -1,22 +1,25 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DeriveDataTypeable     #-}
-{-# LANGUAGE StandaloneDeriving     #-}
-{-# LANGUAGE RecordWildCards        #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 {-# LANGUAGE NamedFieldPuns         #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE RankNTypes           #-}
+
 
 
 module Yage.Core.Application.Types
-    ( Application, Window(..), ApplicationState(..), ApplicationEnv(..), Event(..), WindowHandle
-    , ApplicationConfig(..)
-    , module Events
+    ( Application, ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
+    , Window(..), WindowHandle, GLFWError
+
+    , GLFW.OpenGLProfile(..)
+    , GLFW.WindowHint(..)
+
+    , module EventTypes
     ) where
 
 import           Yage.Prelude                 hiding (pass)
-import           Data.Data
 import           Data.Version                 (Version)
+
 import           Control.Monad.Exception
 import           Control.Concurrent.STM       (TQueue)
 import           Control.Monad.RWS.Strict     (RWST)
@@ -27,66 +30,53 @@ import           Data.Trie                    (Trie)
 
 import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
+import           System.Log.Formatter         (LogFormatter)
 
-import qualified Graphics.UI.GLFW             as GLFW (Window)
-import           Graphics.UI.GLFW             as Events ( FocusState(..), IconifyState, MouseButton, MouseButtonState
-                                              , CursorState, Key(..), KeyState, ModifierKeys, Error
-                                              , WindowHint(..), OpenGLProfile(..)
-                                              )
+import qualified Graphics.UI.GLFW             as GLFW (WindowHint(..), OpenGLProfile(..), Window)
 
+import           Yage.Core.Application.Internal.Event.Types as EventTypes
 
+--------------------------------------------------------------------------------
+type GLFWError = Error
+
+--------------------------------------------------------------------------------
 
 type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
 
 type WindowHandle = GLFW.Window
 
 data Window = Window
-    { win'title  :: !String
-    , win'size   :: !(Int, Int)
-    , win'handle :: !WindowHandle
-    , win'logger :: (String, Logger) -- | Logger-Name and Logger
+    { winTitle  :: !String
+    , winSize   :: !(Int, Int)
+    , winHandle :: !WindowHandle
+    , winLogger :: (String, Logger) -- | Logger-Name and Logger
     }
 
 instance Show Window where
-    show Window {win'title, win'size} =
-        format "Window: {0} - Size: {1}" [win'title, show win'size]
+    show Window {winTitle, winSize} =
+        format "Window: {0} - Size: {1}" [winTitle, show winSize]
 
 
 data ApplicationState = ApplicationState
-    { app'title   :: !String
-    , app'windows :: Trie (Window)
+    { appTitle   :: !String
+    , appWindows :: Trie Window
     }
     deriving (Show)
 
 data ApplicationEnv = ApplicationEnv
-    { app'eventQ  :: TQueue Event
-    , app'config  :: ApplicationConfig
-    , app'logger  :: (String, Logger) -- | Logger-Name and Logger
+    { appEventQ  :: TQueue Event
+    , appConfig  :: ApplicationConfig
+    , appLogger  :: (String, Logger) -- | Logger-Name and Logger
     , coreversion :: Version
     }
 
 
 data ApplicationConfig = ApplicationConfig
-    { conf'logPriority :: Logger.Priority }
+    { logPriority  :: Logger.Priority
+    , logFormatter :: forall a. LogFormatter a
+    }
 
-
--- mainly inspired by glfw-b-demo
-data Event = Event'Error             !Error !String
-           | Event'WindowPosition    !WindowHandle !Int !Int
-           | Event'WindowSize        !WindowHandle !Int !Int
-           | Event'WindowClose       !WindowHandle
-           | Event'WindowRefresh     !WindowHandle
-           | Event'WindowFocus       !WindowHandle !FocusState
-           | Event'WindowIconify     !WindowHandle !IconifyState
-           | Event'FramebufferSize   !WindowHandle !Int !Int
-           | Event'MousePosition     !WindowHandle !Double !Double
-           | Event'MouseEnter        !WindowHandle !CursorState
-           | Event'MouseButton       !WindowHandle !MouseButton !MouseButtonState !ModifierKeys
-           | Event'MouseScroll       !WindowHandle !Double !Double
-           | Event'Key               !WindowHandle !Key !Int !KeyState !ModifierKeys
-           | Event'Char              !WindowHandle !Char
-           deriving (Typeable, Show, Ord, Eq, Data)
-
+--------------------------------------------------------------------------------
 
 
 -- from: http://hackage.haskell.org/package/control-monad-exception-monadsfd-0.10.3/src/extensions/Control/Monad/Exception/MonadsFD.hs
@@ -108,3 +98,5 @@ instance (Monoid w, MonadWriter w m) => MonadWriter w (EMT l m) where
                case a of
                  Left  l     -> return (Left l, id)
                  Right (r,f) -> return (Right r, f)
+
+

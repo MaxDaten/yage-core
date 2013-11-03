@@ -7,6 +7,7 @@
 module Yage.Core.Application.Exception
     ( ApplicationException(..), InternalException(..)
     , module Ex
+    , module Yage.Core.Application.Exception
     ) where
 
 import           Yage.Prelude

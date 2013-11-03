@@ -95,7 +95,7 @@ setErrorCallback = glfw . GLFW.setErrorCallback
 
 {-# INLINE windowCallbackMapping #-}
 windowCallbackMapping :: (Throws InternalException l) => (GLFW.Window -> t -> IO a) -> Window -> t -> Application l a
-windowCallbackMapping cbf win cb = glfw . (\w -> cbf w cb) . win'handle $ win
+windowCallbackMapping cbf win cb = glfw . (`cbf` cb) . winHandle $ win
 
 -- type renaming
 type MousePositionCallback  = GLFW.CursorPosCallback

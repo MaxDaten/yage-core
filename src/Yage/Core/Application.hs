@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
-{-# LANGUAGE DeriveDataTypeable         #-}
+-- {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE StandaloneDeriving         #-}
+-- {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -17,15 +17,15 @@
 
 
 module Yage.Core.Application
-    ( Application, ApplicationConfig(..), WindowHint(..), OpenGLProfile(..)
-    , execApplication
-    , Window, createWindow, windowByTitle, windowByHandle, destroyWindow
+    ( execApplication
+    , defaultAppConfig
+    , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
-    , pollEvent
     , io
 
     , module Event
     , module Window
+    , module Types
     ) where
 
 --------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
-import           Control.Concurrent.STM          (newTQueueIO, tryReadTQueue, atomically)
+import           Control.Concurrent.STM          (newTQueueIO)
 
 import           System.IO                       (stderr)
 
@@ -52,10 +52,8 @@ import           System.IO                       (stderr)
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
-import           Yage.Core.GLFW.Event
-import           Yage.Core.Application.Types
-import           Yage.Core.Application.Types     as Event hiding (Application, Window)
-import           Yage.Core.Application.Event
+import           Yage.Core.Application.Types     as Types
+import           Yage.Core.Application.Event     as Event
 import           Yage.Core.Application.Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
@@ -65,11 +63,11 @@ import Paths_yage_core
 
 initialState :: ApplicationState
 initialState = ApplicationState
-    { app'title = ""
-    , app'windows = T.empty
+    { appTitle = ""
+    , appWindows = T.empty
     }
 
-initalEnv :: String -> ApplicationConfig -> IO (ApplicationEnv)
+initalEnv :: String -> ApplicationConfig -> IO ApplicationEnv
 initalEnv title conf =
     let loggerName = "app." ++ clearAppTitle title
     in ApplicationEnv
@@ -79,17 +77,23 @@ initalEnv title conf =
             <*> pure version
     where
         clearAppTitle :: String -> String
-        clearAppTitle = filter (isAlphaNum)
+        clearAppTitle = filter isAlphaNum
 
+
+defaultAppConfig :: ApplicationConfig
+defaultAppConfig = ApplicationConfig
+    { logPriority   = WARNING
+    , logFormatter  = coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg"
+    }
 
 
 execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
 execApplication title conf app = do
-    let a   = tryEMT $ runApp app
-    rootL   <- getRootLogger
-    env     <- initalEnv title conf
+    let theApp = tryEMT $ runApp app
+    rootL      <- getRootLogger
+    env        <- initalEnv title conf
 
-    (eResult, st') <- evalRWST a env (initialState { app'title = title })
+    (eResult, st') <- evalRWST theApp env (initialState { appTitle = title })
 
     logL rootL NOTICE $ format "Final state:[{0}]" [show st']
 
@@ -109,17 +113,18 @@ execApplication title conf app = do
         startup = do
             setupLogging
             initGlfw
-            debugM . ("yage-core version: " ++) . show =<< asks coreversion
-            debugM . ("glfw-version: " ++)      . show =<< getGLFWVersion
+            infoM . ("yage-core version: " ++) . show =<< asks coreversion
+            infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
             registerGlobalErrorCallback =<< Just <$> getAppLogger
 
         shutdown = destroyAllWindows >> terminateGlfw
 
         setupLogging = do
-            prio <- asks $ conf'logPriority . app'config
+            prio <- asks $ logPriority . appConfig
+            fmt  <- asks $ logFormatter . appConfig
             io $ do
                 h <- streamHandler stderr DEBUG >>= \lh -> return $
-                     LogHandler.setFormatter lh (coloredLogFormatter "[$utcTime : $loggername : $prio]\t $msg")
+                     LogHandler.setFormatter lh fmt
 
                 -- TODO set only app logger
                 updateGlobalLogger rootLoggerName (setHandlers [h])
@@ -136,10 +141,11 @@ createWindow width height title = do
     where
         registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
         registerAllWindowCallbacks win = do
-            tq <- asks app'eventQ
+            tq <- asks appEventQ
             registerWindowCallbacks win tq $ Just $ getWinLogger win
         winS :: Window -> ShowS
-        winS win = ((show . win'handle $ win) ++)
+        winS win = ((show . winHandle $ win) ++)
+
 
 createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l Window
 createWindowWithHints hints width height title = withWindowHints hints $ \_ -> createWindow width height title
@@ -155,7 +161,7 @@ withWindowAsCurrent win f = do
 
 windowByTitle :: String -> Application l (Maybe Window)
 windowByTitle title = do
-    wins <- gets app'windows
+    wins <- gets appWindows
     return $ T.lookup (BS.pack title) wins
 
 
@@ -163,9 +169,9 @@ windowByTitle title = do
 -- TODO effective version
 windowByHandle :: (Throws InternalException l) => WindowHandle -> Application l Window
 windowByHandle wh = do
-    ws <- gets app'windows
+    ws <- gets appWindows
     let wins = T.toListBy (flip const) ws
-        mw   = find (\w -> win'handle w == wh) wins
+        mw   = find (\w -> winHandle w == wh) wins
     case mw of
         Just w -> return w
         Nothing -> throw . InternalException . toException $ InvalidWindowHandleException
@@ -174,31 +180,21 @@ windowByHandle wh = do
 
 
 destroyWindow :: (Throws InternalException l) => Window -> Application l ()
-destroyWindow Window{win'title} = do
+destroyWindow Window{winTitle} = do
     appState <- get
-    let (mwin, wins') = retrieve (BS.pack win'title) $ app'windows appState
+    let (mwin, wins') = retrieve (BS.pack winTitle) $ appWindows appState
     maybe (return ()) directlyDestroyWindow mwin
-    put appState{ app'windows = wins' }
+    put appState{ appWindows = wins' }
 
 
 
 destroyAllWindows :: (Throws InternalException l) => Application l ()
 destroyAllWindows = do
     appState <- get
-    let wins = T.toListBy (\_key win -> win) $ app'windows appState
+    let wins = T.toListBy (\_key win -> win) $ appWindows appState
     mapM_ directlyDestroyWindow wins
-    put appState{ app'windows = T.empty}
+    put appState{ appWindows = T.empty}
 
-
---------------------------------------------------------------------------------
-
-
-pollEvent :: (Throws InternalException l) => Application l (Maybe Event)
-pollEvent = do
-    pollEvents
-    queue <- asks app'eventQ
-    mevent <- ioe $ atomically $ tryReadTQueue queue
-    return mevent
 
 --------------------------------------------------------------------------------
 -- Helper
@@ -207,8 +203,8 @@ pollEvent = do
 addWindow :: Window -> Application l ()
 addWindow win@Window{..} =
     modify $ \st ->
-        let wins' = T.insert (BS.pack win'title) win (app'windows st)
-        in st{ app'windows = wins' }
+        let wins' = T.insert (BS.pack winTitle) win (appWindows st)
+        in st{ appWindows = wins' }
 
 
 -- TODO: efficent version
@@ -225,8 +221,8 @@ mkWindow width height title = do
     return $ Window title (width, height) wh logger
     where
         getWindowLogger wh = do
-            appLogger <- asks app'logger
-            let loggerName = fst appLogger ++ "." ++ (show wh)
+            appLogger      <- asks appLogger
+            let loggerName = fst appLogger ++ "." ++ show wh
             ioe $ (loggerName,) <$> getLogger loggerName
 
 -- TODO maybe make current
