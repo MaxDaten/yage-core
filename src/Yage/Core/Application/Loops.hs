@@ -14,26 +14,27 @@ import           Yage.Core.Application.Exception
 
 
 basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l)
-                => (Window -> b -> InputState -> Application l b)              -- | the application
-                -> (Int, Int)                                                  -- | window width and height
+                => (Int, Int)                                                  -- | window width and height
                 -> [WindowHint]                                                -- | window hints
                 -> b                                                           -- | initial value for app calc
+                -> (Window -> b -> InputState -> Application l b)              -- | the application
                 -> Application l b
-basicWindowLoop app (width, height) hints initial = do
+basicWindowLoop (width, height) hints initial loop = do
     win <- createWindowWithHints hints width height =<< gets appTitle
-    appLoopStep win app initial initialInputState
+    appLoopStep win initial initialInputState loop
 
 
 appLoopStep :: (Throws ApplicationException l, Throws InternalException l)
         => Window
-        -> (Window -> b -> InputState -> Application l b)
         -> b
         -> InputState
+        -> (Window -> b -> InputState -> Application l b)
         -> Application l b
-appLoopStep win' app initial' inputState' = withWindowAsCurrent win' $ \win -> do
-    inputState <- liftM (updateInputState inputState') collectEvents
-    r <- app win initial' inputState
-
-    swapBuffers win
-    quit <- windowShouldClose win
-    if quit then return r else (appLoopStep win app r inputState)
+appLoopStep win' initial' inputState' app = do
+    (x, i) <- withWindowAsCurrent win' $ \win -> do
+                result      <- app win initial' inputState'
+                inputState  <- liftM (updateInputState inputState') collectEvents
+                swapBuffers win
+                return (result, inputState)
+    quit <- windowShouldClose win'
+    if quit then return x else (appLoopStep win' x i app)

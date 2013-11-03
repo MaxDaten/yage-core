@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE DeriveDataTypeable     #-}
 module Yage.Core.Application.Event.Types where
 
 import Yage.Prelude
@@ -13,7 +14,8 @@ import Yage.Core.Application.Internal.Event.Types
 data MouseState = MouseState
     { _mousePosition :: (Double, Double) -- | screen coords relative to upper left corner
     , _mouseButtons  :: Set Event
-    } deriving Show
+    }
+    deriving (Show, Typeable)
 
 makeLenses ''MouseState
 
@@ -24,7 +26,7 @@ data JoystickState = JoystickState
     { _joyButtons   :: Set Event
     , _joyAxes      :: [Axis]
     }
-    deriving Show
+    deriving (Show, Typeable)
 
 makeLenses ''JoystickState
 
@@ -33,7 +35,7 @@ data InputState = InputState
     , _mouse    :: MouseState           -- | current pressed buttons and mouse position
     , _joystick :: Maybe JoystickState  -- | current pressed buttons and axes
     }
-    deriving Show
+    deriving (Show, Typeable)
 
 makeLenses ''InputState
 

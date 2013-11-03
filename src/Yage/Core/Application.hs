@@ -21,7 +21,6 @@ module Yage.Core.Application
     , defaultAppConfig
     , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
-    , pollOneEvent, handleEventsWith, collectEvents
     , io
 
     , module Event
@@ -54,8 +53,7 @@ import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
 import           Yage.Core.Application.Types     as Types
-import           Yage.Core.Application.Types     as Event hiding (Application, Window)
-import           Yage.Core.Application.Event
+import           Yage.Core.Application.Event     as Event
 import           Yage.Core.Application.Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
