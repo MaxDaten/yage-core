@@ -4,3 +4,4 @@ cabal.sandbox.config
 *.sublime-*
 src/Yage/Core/ExTest.hs
 src/Yage/Core/ex.hs
+cabal.config

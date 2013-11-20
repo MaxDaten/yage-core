@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 Flag library-only
     Description:   Build only the yage-core lib
-    Default:       False
+    Default:       True
 
 library
   exposed-modules:     Yage.Core.Application
@@ -61,7 +61,7 @@ library
 
 -------------------------------------------------------------------------------
 
-executable simple-app
+executable simpleApp
     if flag(library-only)
       Buildable: False
 
