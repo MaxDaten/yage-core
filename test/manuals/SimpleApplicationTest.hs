@@ -6,7 +6,6 @@ import Control.Monad (when)
 
 import Yage.Core.Application
 import Yage.Core.Application.Loops
-import Yage.Core.Application.Event
 import Yage.Core.Application.Logging
 
 
@@ -16,5 +15,5 @@ main =
         size    = (800, 600)
         hints   = []
     in execApplication "simple test app" conf $ basicWindowLoop size hints () $
-        \_win _ inputState -> do
+        \_win _ (inputState, _) -> do
             when (isPressed inputState Key'W) $ logM DEBUG "pressed"

@@ -11,9 +11,7 @@ module Yage.Core.Application.Event
 import           Yage.Prelude
 
 import           Data.Maybe                     ()
-import           Data.List                      (foldr)
-
-import           Control.Lens
+import           Data.List                      (foldr, any)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Internal.Event as InternalEvent
@@ -24,6 +22,14 @@ import           Yage.Core.Application.Event.Types    as EventType
 updateInputState :: InputState -> [Event] -> InputState
 updateInputState = foldr insertIntoInputState
 
+isWindowEvent :: Event -> Bool
+isWindowEvent event = any (flip ($) event)
+                         [ isEventWindowPosition
+                         , isEventWindowSize
+                         , isEventWindowClose
+                         , isEventWindowFocus
+                         , isEventWindowIconify
+                         ]
 
 -- | TODO respect windows
 insertIntoInputState :: Event -> InputState -> InputState
@@ -42,3 +48,10 @@ currentKeyState inputState k = inputState^.keyboard.at k
 
 isPressed :: InputState -> Key -> Bool
 isPressed inputState k = isJust $ currentKeyState inputState k
+
+
+justResizedTo :: WindowEvents -> Maybe (Int, Int)
+justResizedTo es = extractSize <$> firstOf (traverse.filtered isEventWindowSize) es
+    where
+        extractSize (EventWindowSize _win e) = (e^.winWidth, e^.winHeight)
+        extractSize _ = error "the impossible happend"

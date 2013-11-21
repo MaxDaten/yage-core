@@ -4,12 +4,14 @@ module Yage.Core.Application.Event.Types where
 
 import Yage.Prelude
 
-import Control.Lens
-
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Yage.Core.Application.Internal.Event.Types
+
+
+type WindowEvents = [Event]
+
 
 data MouseState = MouseState
     { _mousePosition :: (Double, Double) -- | screen coords relative to upper left corner

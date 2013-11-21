@@ -20,6 +20,73 @@ import           Yage.Core.Application.Logging
 import           Yage.Core.Application.Exception
 import           Yage.Core.Application.Utils
 
+queueEvent :: TQueue Event -> Maybe Logger -> Event -> IO ()
+queueEvent tc ml e = do
+    logEvent ml e
+    atomically $ writeTQueue tc e
+    where
+        -- TODO Pattern-Matching and/or multiplexing
+        logEvent :: Maybe Logger -> Event -> IO ()
+        logEvent (Just l) e' = logL l NOTICE (show e')
+        logEvent Nothing _ = return ()
+--------------------------------------------------------------------------------
+
+class EventHandler t a where
+    handleEvent :: t -> EventHandling a
+
+type EventHandling a = forall l. (Throws InternalException l, Throws ApplicationException l) => Event -> Application l a
+
+--------------------------------------------------------------------------------
+
+
+pollOneEvent :: (Throws InternalException l)
+             => Application l (Maybe Event)
+pollOneEvent = do
+    pollEvents
+    queue <- asks appEventQ
+    ioe $ atomically $ tryReadTQueue queue
+
+
+
+handleEventsWith :: (Throws InternalException l, Throws ApplicationException l)
+                 => EventHandling a -> Application l ([a])
+handleEventsWith handler = pollOneEvent >>= processEvent' []
+    where
+        processEvent' as Nothing = return as
+        processEvent' as (Just e) = do
+            internalEventHandling e
+            a <- handler e
+            processEvent' (a:as) =<< pollOneEvent
+
+
+
+multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
+                => [h] -> Application l [b]
+multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
+    where
+        multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
+        multiplex e = sequence . map (`handleEvent` e)
+
+
+
+collectEvents :: (Throws InternalException l, Throws ApplicationException l)
+              => Application l [Event]
+collectEvents = handleEventsWith return
+
+
+
+internalEventHandling :: EventHandling ()
+internalEventHandling e = debugM $ show e
+
+
+
+registerGlobalErrorCallback :: (Throws InternalException l)
+                            => Maybe Logger -> Application l ()
+registerGlobalErrorCallback ml = do
+    eventQ <- asks appEventQ
+    setErrorCallback $ Just $ errorCallback eventQ ml
+
+
 --------------------------------------------------------------------------------
 
 
@@ -54,70 +121,6 @@ keyCallback             tc ml win k sc ka mk = queueEvent tc ml $ EventKey win  
 charCallback            tc ml win c          = queueEvent tc ml $ EventChar win            $ EChar c
 
 --------------------------------------------------------------------------------
-
-queueEvent :: TQueue Event -> Maybe Logger -> Event -> IO ()
-queueEvent tc ml e = do
-    logEvent ml e
-    atomically $ writeTQueue tc e
-    where
-        -- TODO Pattern-Matching and/or multiplexing
-        logEvent :: Maybe Logger -> Event -> IO ()
-        logEvent (Just l) e' = logL l NOTICE (show e')
-        logEvent Nothing _ = return ()
---------------------------------------------------------------------------------
-
-class EventHandler t a where
-    handleEvent :: t -> EventHandling a
-
-type EventHandling a = forall l. (Throws InternalException l, Throws ApplicationException l) => Event -> Application l a
-
---------------------------------------------------------------------------------
-
-
-pollOneEvent :: (Throws InternalException l) => Application l (Maybe Event)
-pollOneEvent = do
-    pollEvents
-    queue <- asks appEventQ
-    ioe $ atomically $ tryReadTQueue queue
-
-
-
-handleEventsWith :: (Throws InternalException l, Throws ApplicationException l)
-                  => EventHandling a -> Application l ([a])
-handleEventsWith handler = pollOneEvent >>= processEvent' []
-    where
-        processEvent' as Nothing = return as
-        processEvent' as (Just e) = do
-            internalEventHandling e
-            a <- handler e
-            processEvent' (a:as) =<< pollOneEvent
-
-
-
-multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
-                => [h] -> Application l [b]
-multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
-    where
-        multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
-        multiplex e = sequence . map (`handleEvent` e)
-
-
-
-collectEvents :: (Throws InternalException l, Throws ApplicationException l)
-              => Application l [Event]
-collectEvents = handleEventsWith return
-
-
-
-internalEventHandling :: EventHandling ()
-internalEventHandling e = debugM $ show e
-
-
-
-registerGlobalErrorCallback :: (Throws InternalException l) => Maybe Logger -> Application l ()
-registerGlobalErrorCallback ml = do
-    eventQ <- asks appEventQ
-    setErrorCallback $ Just $ errorCallback eventQ ml
 
 
 
