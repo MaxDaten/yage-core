@@ -12,8 +12,7 @@ import Yage.Core.Application.Logging
 main :: IO ()
 main =
     let conf    = defaultAppConfig{ logPriority = DEBUG }
-        size    = (800, 600)
-        hints   = []
-    in execApplication "simple test app" conf $ basicWindowLoop size hints () $
-        \_win _ (inputState, _) -> do
+        winConf    = WindowConfig (800, 600) []
+    in execApplication "simple test app" conf $ basicWindowLoop winConf () $
+        \_win (inputState, _) _ -> do
             when (isPressed inputState Key'W) $ logM DEBUG "pressed"

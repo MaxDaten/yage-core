@@ -9,7 +9,7 @@
 
 module Yage.Core.Application.Types
     ( Application, ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
-    , Window(..), WindowHandle, GLFWError
+    , Window(..), WindowHandle, WindowConfig(..), GLFWError
 
     , GLFW.OpenGLProfile(..)
     , GLFW.WindowHint(..)
@@ -42,6 +42,13 @@ type GLFWError = Error
 --------------------------------------------------------------------------------
 
 type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
+
+
+data WindowConfig = WindowConfig
+    { windowSize  :: (Int, Int)
+    , windowHints :: [GLFW.WindowHint]
+    }
+
 
 type WindowHandle = GLFW.Window
 

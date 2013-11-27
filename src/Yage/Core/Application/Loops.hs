@@ -12,12 +12,11 @@ import           Yage.Core.Application
 import           Yage.Core.Application.Exception
 
 basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l)
-                => (Int, Int)                                                      -- | window width and height
-                -> [WindowHint]                                                    -- | window hints
+                => WindowConfig                                                    -- | window size and hints
                 -> b                                                               -- | initial value for app calc
-                -> (Window -> b -> (InputState, WindowEvents) -> Application l b)  -- | the application
+                -> (Window -> (InputState, WindowEvents) -> b -> Application l b)  -- | the application
                 -> Application l b
-basicWindowLoop (width, height) hints initial loop = do
+basicWindowLoop (WindowConfig (width, height) hints) initial loop = do
     win <- createWindowWithHints hints width height =<< gets appTitle
     appLoopStep win initial (initialInputState, []) loop
 
@@ -26,7 +25,7 @@ appLoopStep :: (Throws ApplicationException l, Throws InternalException l)
         => Window
         -> b
         -> (InputState, WindowEvents)
-        -> (Window -> b -> (InputState, WindowEvents) -> Application l b)
+        -> (Window -> (InputState, WindowEvents) -> b -> Application l b)
         -> Application l b
 appLoopStep win' b' (inputState', _consumedWinEvents') app = do
     (x, i) <- withWindowAsCurrent win' $ \win -> do
@@ -34,7 +33,7 @@ appLoopStep win' b' (inputState', _consumedWinEvents') app = do
                 let inputState = updateInputState inputState' allEvents
                     winEvents  = filter isWindowEvent allEvents
 
-                result      <- app win b' (inputState, winEvents)
+                result      <- app win (inputState, winEvents) b'
 
                 swapBuffers win
                 return (result, (inputState, winEvents))
