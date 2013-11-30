@@ -39,7 +39,7 @@ insertIntoInputState e@(EventKey           _win d) = keyboard            %~ at (
 insertIntoInputState _ = id
 
 justPressed :: Event -> Maybe Event
-justPressed e@(EventKey _win d)         = if d^.keyState == KeyState'Released        then Nothing else Just e
+justPressed e@(EventKey _win d)         = if d^.keyState         == KeyState'Released        then Nothing else Just e
 justPressed e@(EventMouseButton _win d) = if d^.mouseButtonState == MouseButtonState'Pressed then Just e else Nothing
 justPressed _ = Nothing
 

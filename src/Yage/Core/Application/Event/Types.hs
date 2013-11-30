@@ -1,15 +1,17 @@
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE DeriveDataTypeable     #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TemplateHaskell    #-}
 module Yage.Core.Application.Event.Types where
 
-import Yage.Prelude
+import           Yage.Prelude
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import qualified Data.Map                                   as Map
+import qualified Data.Set                                   as Set
 
-import Yage.Core.Application.Internal.Event.Types
+import           Yage.Core.Application.Internal.Event.Types
 
 
+-- type WindowEvents = [Event]
 type WindowEvents = [Event]
 
 
@@ -25,8 +27,8 @@ type KeyboardState = Map Key Event
 
 type Axis = Double
 data JoystickState = JoystickState
-    { _joyButtons   :: Set Event
-    , _joyAxes      :: [Axis]
+    { _joyButtons :: Set Event
+    , _joyAxes    :: [Axis]
     }
     deriving (Show, Typeable)
 
@@ -47,3 +49,33 @@ initialInputState = InputState
     , _mouse     = MouseState (0,0) Set.empty
     , _joystick  = Nothing --- JoystickState empty []
     }
+
+instance Monoid InputState where
+    mempty = initialInputState
+    mappend a b =
+        InputState
+            { _keyboard = a^.keyboard <> b^.keyboard
+            , _mouse    = a^.mouse    <> b^.mouse
+            , _joystick = a^.joystick <> b^.joystick
+            }
+
+
+instance Monoid MouseState where
+    mempty = MouseState (0,0) mempty
+    mappend a b =
+        MouseState
+            { _mousePosition = a^.mousePosition <> b^.mousePosition
+            , _mouseButtons = a^.mouseButtons <> b^.mouseButtons
+            }
+
+instance Monoid JoystickState where
+    mempty = JoystickState mempty mempty
+    mappend a b =
+        JoystickState
+            { _joyButtons = a^.joyButtons <> b^.joyButtons
+            , _joyAxes    = a^.joyAxes    <> b^.joyAxes
+            }
+
+instance Monoid Double where
+    mempty = 0
+    mappend = (+)

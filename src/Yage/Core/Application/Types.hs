@@ -9,8 +9,9 @@
 
 module Yage.Core.Application.Types
     ( Application, ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
-    , Window(..), WindowHandle, WindowConfig(..), GLFWError
+    , Window(..), WindowHandle, WindowConfig(..)
 
+    , GLFWError
     , GLFW.OpenGLProfile(..)
     , GLFW.WindowHint(..)
 
