@@ -1,8 +1,12 @@
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE NamedFieldPuns         #-}
 
-module Yage.Core.Application.Internal.Event where
+module Yage.Core.Application.Internal.Event
+    ( module Yage.Core.Application.Internal.Event
+    , module Polling
+    ) where
 
 import           Yage.Prelude
 
@@ -13,7 +17,7 @@ import           Control.Monad                  (liftM, sequence, join)
 import           Control.Concurrent.STM         (TQueue, atomically, tryReadTQueue, writeTQueue)
 
 import           Yage.Core.GLFW.Callback        hiding (Key)
-import           Yage.Core.GLFW.Event
+import           Yage.Core.GLFW.Event           as Polling (pollEvents, waitEvents)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Logging
@@ -40,29 +44,27 @@ type EventHandling a = forall l. (Throws InternalException l, Throws Application
 
 
 pollOneEvent :: (Throws InternalException l)
-             => Application l (Maybe Event)
-pollOneEvent = do
-    pollEvents
-    queue <- asks appEventQ
+             => TQueue Event -> Application l (Maybe Event)
+pollOneEvent queue = do
     ioe $ atomically $ tryReadTQueue queue
 
 
 
-handleEventsWith :: (Throws InternalException l, Throws ApplicationException l)
-                 => EventHandling a -> Application l ([a])
-handleEventsWith handler = pollOneEvent >>= processEvent' []
+handleWindowEventsWith :: (Throws InternalException l, Throws ApplicationException l)
+                 => Window -> EventHandling a -> Application l ([a])
+handleWindowEventsWith Window{winEventQ} handler = pollOneEvent winEventQ >>= processEvent' []
     where
         processEvent' as Nothing = return as
         processEvent' as (Just e) = do
             internalEventHandling e
             a <- handler e
-            processEvent' (a:as) =<< pollOneEvent
+            processEvent' (a:as) =<< pollOneEvent winEventQ
 
 
 
 multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
-                => [h] -> Application l [b]
-multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
+                => Window -> [h] -> Application l [b]
+multiplexEvents win hs = liftM join $ handleWindowEventsWith win $ flip multiplex hs
     where
         multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
         multiplex e = sequence . map (`handleEvent` e)
@@ -70,8 +72,8 @@ multiplexEvents hs = liftM join $ handleEventsWith $ flip multiplex hs
 
 
 collectEvents :: (Throws InternalException l, Throws ApplicationException l)
-              => Application l [Event]
-collectEvents = handleEventsWith return
+              => Window -> Application l [Event]
+collectEvents win = handleWindowEventsWith win return
 
 
 
@@ -124,8 +126,10 @@ charCallback            tc ml win c          = queueEvent tc ml $ EventChar win 
 
 
 
-registerWindowCallbacks :: (Throws InternalException l) => Window -> TQueue Event -> Maybe Logger -> Application l ()
-registerWindowCallbacks win tq ml = do
+registerWindowCallbacks :: (Throws InternalException l) => Window -> Maybe Logger -> Application l ()
+registerWindowCallbacks win ml =
+    let tq = winEventQ win
+    in do
     -- annoying setup
     setWindowPositionCallback   win $ Just $ windowPositionCallback tq ml
     setWindowSizeCallback       win $ Just $ windowSizeCallback tq ml

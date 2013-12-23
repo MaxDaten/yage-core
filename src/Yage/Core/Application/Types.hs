@@ -58,6 +58,7 @@ data Window = Window
     , winSize   :: !(Int, Int)
     , winHandle :: !WindowHandle
     , winLogger :: (String, Logger) -- | Logger-Name and Logger
+    , winEventQ :: TQueue Event
     }
 
 instance Show Window where

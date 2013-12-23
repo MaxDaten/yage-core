@@ -134,15 +134,12 @@ execApplication title conf app = do
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 createWindow width height title = do
     win <- mkWindow width height title
-    registerAllWindowCallbacks win
+    registerWindowCallbacks win $ Just $ getWinLogger win
     addWindow win
     withWindowAsCurrent win $ \win -> mapM_ (debugM . winS win) =<< windowInfo win
     return win
     where
-        registerAllWindowCallbacks :: (Throws InternalException l) => Window -> Application l ()
-        registerAllWindowCallbacks win = do
-            tq <- asks appEventQ
-            registerWindowCallbacks win tq $ Just $ getWinLogger win
+
         winS :: Window -> ShowS
         winS win = ((show . winHandle $ win) ++)
 
@@ -217,8 +214,9 @@ retrieve q tri = (T.lookup q tri, T.delete q tri)
 mkWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 mkWindow width height title = do
     wh <- createWindowHandle width height title Nothing Nothing
-    logger <- getWindowLogger wh
-    return $ Window title (width, height) wh logger
+    eventQueue <- ioe $ newTQueueIO
+    logger     <- getWindowLogger wh
+    return $ Window title (width, height) wh logger eventQueue
     where
         getWindowLogger wh = do
             appLogger      <- asks appLogger

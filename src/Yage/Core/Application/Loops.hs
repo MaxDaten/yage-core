@@ -29,7 +29,8 @@ appLoopStep :: (Throws ApplicationException l, Throws InternalException l)
         -> Application l b
 appLoopStep win' b' (inputState', _consumedWinEvents') app = do
     (x, i) <- withWindowAsCurrent win' $ \win -> do
-                allEvents   <- collectEvents
+                pollEvents
+                allEvents   <- collectEvents win
                 let inputState = updateInputState inputState' allEvents
                     winEvents  = filter isWindowEvent allEvents
 
