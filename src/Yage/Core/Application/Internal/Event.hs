@@ -6,121 +6,93 @@
 module Yage.Core.Application.Internal.Event
     ( module Yage.Core.Application.Internal.Event
     , module Polling
+    , module Types
     ) where
 
 import           Yage.Prelude
 
-import           Data.List                      (map)
+import qualified Data.Set                       as Set
+import           Data.Monoid
 
-import           Control.Monad.Reader           (asks)
-import           Control.Monad                  (liftM, sequence, join)
-import           Control.Concurrent.STM         (TQueue, atomically, tryReadTQueue, writeTQueue)
+import           Control.Concurrent.STM         (TVar, modifyTVar', atomically)
 
-import           Yage.Core.GLFW.Callback        hiding (Key)
+import           Yage.Core.GLFW.Callback
 import           Yage.Core.GLFW.Event           as Polling (pollEvents, waitEvents)
 
-import           Yage.Core.Application.Types
+import           Yage.Core.Application.Types    as Types
+import           Yage.Core.GLFW.Callback        as Types ( FocusState(..), IconifyState(..), MouseButton(..), MouseButtonState(..), ModifierKeys(..)
+                                                         , CursorState(..), Key(..), KeyState(..))
 import           Yage.Core.Application.Logging
 import           Yage.Core.Application.Exception
-import           Yage.Core.Application.Utils
 
-queueEvent :: TQueue Event -> Maybe Logger -> Event -> IO ()
-queueEvent tc ml e = do
-    logEvent ml e
-    atomically $ writeTQueue tc e
-    where
-        -- TODO Pattern-Matching and/or multiplexing
-        logEvent :: Maybe Logger -> Event -> IO ()
-        logEvent (Just l) e' = logL l NOTICE (show e')
-        logEvent Nothing _ = return ()
---------------------------------------------------------------------------------
-
-class EventHandler t a where
-    handleEvent :: t -> EventHandling a
-
-type EventHandling a = forall l. (Throws InternalException l, Throws ApplicationException l) => Event -> Application l a
-
---------------------------------------------------------------------------------
-
-
-pollOneEvent :: (Throws InternalException l)
-             => TQueue Event -> Application l (Maybe Event)
-pollOneEvent queue = do
-    ioe $ atomically $ tryReadTQueue queue
-
-
-
-handleWindowEventsWith :: (Throws InternalException l, Throws ApplicationException l)
-                 => Window -> EventHandling a -> Application l ([a])
-handleWindowEventsWith Window{winEventQ} handler = pollOneEvent winEventQ >>= processEvent' []
-    where
-        processEvent' as Nothing = return as
-        processEvent' as (Just e) = do
-            internalEventHandling e
-            a <- handler e
-            processEvent' (a:as) =<< pollOneEvent winEventQ
-
-
-
-multiplexEvents :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b)
-                => Window -> [h] -> Application l [b]
-multiplexEvents win hs = liftM join $ handleWindowEventsWith win $ flip multiplex hs
-    where
-        multiplex :: (Throws InternalException l, Throws ApplicationException l, EventHandler h b) => Event -> [h] -> Application l [b]
-        multiplex e = sequence . map (`handleEvent` e)
-
-
-
-collectEvents :: (Throws InternalException l, Throws ApplicationException l)
-              => Window -> Application l [Event]
-collectEvents win = handleWindowEventsWith win return
-
-
-
-internalEventHandling :: EventHandling ()
-internalEventHandling e = debugM $ show e
-
+import           Linear
 
 
 registerGlobalErrorCallback :: (Throws InternalException l)
-                            => Maybe Logger -> Application l ()
-registerGlobalErrorCallback ml = do
-    eventQ <- asks appEventQ
-    setErrorCallback $ Just $ errorCallback eventQ ml
+                            => Logger -> Application l ()
+registerGlobalErrorCallback logger = do
+    --eventQ <- asks appEventQ
+    setErrorCallback $ Just $ \err msg -> logL logger CRITICAL (format "GLFWError {0} - {1}" [show err, msg])
 
 
 --------------------------------------------------------------------------------
 
 
-errorCallback           :: TQueue Event -> Maybe Logger -> GLFWError -> String               -> IO ()
-windowPositionCallback  :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
-windowSizeCallback      :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
-windowCloseCallback     :: TQueue Event -> Maybe Logger -> WindowHandle                      -> IO ()
-windowRefreshCallback   :: TQueue Event -> Maybe Logger -> WindowHandle                      -> IO ()
-windowFocusCallback     :: TQueue Event -> Maybe Logger -> WindowHandle -> FocusState        -> IO ()
-windowIconifyCallback   :: TQueue Event -> Maybe Logger -> WindowHandle -> IconifyState      -> IO ()
-framebufferSizeCallback :: TQueue Event -> Maybe Logger -> WindowHandle -> Int -> Int        -> IO ()
-mouseButtonCallback     :: TQueue Event -> Maybe Logger -> WindowHandle -> MouseButton -> MouseButtonState -> ModifierKeys -> IO ()
-mousePositionCallback   :: TQueue Event -> Maybe Logger -> WindowHandle -> Double -> Double  -> IO ()
-mouseEnterCallback      :: TQueue Event -> Maybe Logger -> WindowHandle -> CursorState       -> IO ()
-scrollCallback          :: TQueue Event -> Maybe Logger -> WindowHandle -> Double -> Double  -> IO ()
-keyCallback             :: TQueue Event -> Maybe Logger -> WindowHandle -> Key -> Int -> KeyState -> ModifierKeys -> IO ()
-charCallback            :: TQueue Event -> Maybe Logger -> WindowHandle -> Char              -> IO ()
+windowPositionCallback  :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
+windowSizeCallback      :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
+windowCloseCallback     :: TVar WindowState -> WindowHandle                      -> IO ()
+windowRefreshCallback   :: TVar WindowState -> WindowHandle                      -> IO ()
+windowFocusCallback     :: TVar WindowState -> WindowHandle -> FocusState        -> IO ()
+windowIconifyCallback   :: TVar WindowState -> WindowHandle -> IconifyState      -> IO ()
+windowMouseEnterCallback:: TVar WindowState -> WindowHandle -> CursorState       -> IO ()
+--framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
+mouseButtonCallback     :: TVar InputState -> WindowHandle -> MouseButton -> MouseButtonState -> ModifierKeys -> IO ()
+mousePositionCallback   :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
+scrollCallback          :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
+--keyCallback             :: TVar InputState -> WindowHandle -> Key -> Int -> GLFW.KeyState -> ModifierKeys -> IO ()
+--charCallback            :: TVar InputState -> WindowHandle -> Char              -> IO ()
 
-errorCallback           tc ml e s            = queueEvent tc ml $ EventError e s
-windowPositionCallback  tc ml win x y        = queueEvent tc ml $ EventWindowPosition win  $ EWindowPosition x y
-windowSizeCallback      tc ml win w h        = queueEvent tc ml $ EventWindowSize win      $ EWindowSize w h
-windowCloseCallback     tc ml win            = queueEvent tc ml $ EventWindowClose win
-windowRefreshCallback   tc ml win            = queueEvent tc ml $ EventWindowRefresh win
-windowFocusCallback     tc ml win fa         = queueEvent tc ml $ EventWindowFocus win     $ EWindowFocus fa
-windowIconifyCallback   tc ml win ia         = queueEvent tc ml $ EventWindowIconify win   $ EWindowIconify ia
-framebufferSizeCallback tc ml win w h        = queueEvent tc ml $ EventFramebufferSize win $ EFramebufferSize w h
-mouseButtonCallback     tc ml win mb mba mk  = queueEvent tc ml $ EventMouseButton win     $ EMouseButton mb mba mk
-mousePositionCallback   tc ml win x y        = queueEvent tc ml $ EventMousePosition win   $ EMousePosition x y
-mouseEnterCallback      tc ml win ca         = queueEvent tc ml $ EventMouseEnter win      $ EMouseEnter ca
-scrollCallback          tc ml win x y        = queueEvent tc ml $ EventMouseScroll win     $ EMouseScroll x y
-keyCallback             tc ml win k sc ka mk = queueEvent tc ml $ EventKey win             $ EKey k sc ka mk
-charCallback            tc ml win c          = queueEvent tc ml $ EventChar win            $ EChar c
+windowPositionCallback winVar _ x y =
+    atomically $ modifyTVar' winVar $ winPosition .~ V2 x y
+
+windowSizeCallback winVar _ w h =
+    atomically $ modifyTVar' winVar $ winSize .~ V2 w h
+
+windowCloseCallback winVar _ =
+    atomically $ modifyTVar' winVar $ winShouldClose .~ True
+
+windowRefreshCallback winVar _ =
+    atomically $ modifyTVar' winVar $ winRefresh .~ True
+
+windowFocusCallback winVar _ focusState =
+    atomically $ modifyTVar' winVar $ winFocus .~ (focusState == FocusState'Focused)
+
+windowIconifyCallback winVar _ iconifyState =
+    atomically $ modifyTVar' winVar $ winIconified .~ (iconifyState == IconifyState'Iconified)
+
+windowMouseEnterCallback winVar _ cursorState =
+    atomically $ modifyTVar' winVar $ winMouseIn .~ (cursorState == CursorState'InWindow)
+-- framebufferSizeCallback winVar   win w h        = undefined
+
+-- TODO: respect modifier
+mouseButtonCallback inputVar _ button MouseButtonState'Pressed _modifier  =
+    atomically $ modifyTVar' inputVar $ mouse.mbPressed %~ Set.insert (fromEnum button)
+mouseButtonCallback inputVar _ button MouseButtonState'Released _modifier  =
+    atomically $ modifyTVar' inputVar $ mouse.mbPressed %~ Set.delete (fromEnum button)
+
+mousePositionCallback inputVar _ x y =
+    atomically $ modifyTVar' inputVar $ mouse.mousePosition .~ V2 x y
+
+scrollCallback inputVar _ offX offY        =
+    atomically $ modifyTVar' inputVar $ mouse.mouseScroll +~ V2 offX offY
+
+keyCallback inputVar win key _charcode KeyState'Released _modifier =
+    atomically $ modifyTVar' inputVar $ keyboard.keyMap %~ Set.delete key
+
+
+keyCallback inputVar win key _charcode keystate _modifier =
+    atomically $ modifyTVar' inputVar $ keyboard.keyMap %~ Set.insert key
+--charCallback            inputVar win c          = undefined
 
 --------------------------------------------------------------------------------
 
@@ -128,23 +100,24 @@ charCallback            tc ml win c          = queueEvent tc ml $ EventChar win 
 
 registerWindowCallbacks :: (Throws InternalException l) => Window -> Maybe Logger -> Application l ()
 registerWindowCallbacks win ml =
-    let tq = winEventQ win
+    let stateVar = winState win
+        inputVar = inputState win
     in do
     -- annoying setup
-    setWindowPositionCallback   win $ Just $ windowPositionCallback tq ml
-    setWindowSizeCallback       win $ Just $ windowSizeCallback tq ml
-    setWindowCloseCallback      win $ Just $ windowCloseCallback tq ml
-    setWindowRefreshCallback    win $ Just $ windowRefreshCallback tq ml
-    setWindowFocusCallback      win $ Just $ windowFocusCallback tq ml
-    setWindowIconifyCallback    win $ Just $ windowIconifyCallback tq ml
-    setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback tq ml
+    setWindowPositionCallback   win $ Just $ windowPositionCallback stateVar
+    setWindowSizeCallback       win $ Just $ windowSizeCallback stateVar
+    setWindowCloseCallback      win $ Just $ windowCloseCallback stateVar
+    setWindowRefreshCallback    win $ Just $ windowRefreshCallback stateVar
+    setWindowFocusCallback      win $ Just $ windowFocusCallback stateVar
+    setWindowIconifyCallback    win $ Just $ windowIconifyCallback stateVar
+    setMouseEnterCallback       win $ Just $ windowMouseEnterCallback stateVar
+    --setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback stateVar
 
-    setKeyCallback              win $ Just $ keyCallback tq ml
-    setCharCallback             win $ Just $ charCallback tq ml
+    setKeyCallback              win $ Just $ keyCallback inputVar
+    --setCharCallback             win $ Just $ charCallback inputVar
 
-    setMouseButtonCallback      win $ Just $ mouseButtonCallback tq ml
-    setMousePositionCallback    win $ Just $ mousePositionCallback tq ml
-    setMouseEnterCallback       win $ Just $ mouseEnterCallback tq ml
-    setScrollCallback           win $ Just $ scrollCallback tq ml
+    setMouseButtonCallback      win $ Just $ mouseButtonCallback inputVar
+    setMousePositionCallback    win $ Just $ mousePositionCallback inputVar
+    setScrollCallback           win $ Just $ scrollCallback inputVar
 
 --------------------------------------------------------------------------------

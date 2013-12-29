@@ -43,7 +43,7 @@ import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
-import           Control.Concurrent.STM          (newTQueueIO)
+import           Control.Concurrent.STM          (newTVarIO)
 
 import           System.IO                       (stderr)
 
@@ -57,6 +57,8 @@ import           Yage.Core.Application.Event     as Event
 import           Yage.Core.Application.Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
+
+import           Linear
 --------------------------------------------------------------------------------
 
 import Paths_yage_core
@@ -70,10 +72,8 @@ initialState = ApplicationState
 initalEnv :: String -> ApplicationConfig -> IO ApplicationEnv
 initalEnv title conf =
     let loggerName = "app." ++ clearAppTitle title
-    in ApplicationEnv
-            <$> newTQueueIO
-            <*> pure conf
-            <*> ((loggerName,) <$> getLogger loggerName)
+    in ApplicationEnv conf
+            <$> ((loggerName,) <$> getLogger loggerName)
             <*> pure version
     where
         clearAppTitle :: String -> String
@@ -115,7 +115,7 @@ execApplication title conf app = do
             initGlfw
             infoM . ("yage-core version: " ++) . show =<< asks coreversion
             infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
-            registerGlobalErrorCallback =<< Just <$> getAppLogger
+            registerGlobalErrorCallback =<< getAppLogger
 
         shutdown = destroyAllWindows >> terminateGlfw
 
@@ -214,14 +214,24 @@ retrieve q tri = (T.lookup q tri, T.delete q tri)
 mkWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 mkWindow width height title = do
     wh <- createWindowHandle width height title Nothing Nothing
-    eventQueue <- ioe $ newTQueueIO
     logger     <- getWindowLogger wh
-    return $ Window title (width, height) wh logger eventQueue
+    winVar     <- ioe $ newTVarIO =<< initialWindowState wh
+    inputVar   <- ioe $ newTVarIO mempty
+    return $ Window title wh logger winVar inputVar
     where
         getWindowLogger wh = do
             appLogger      <- asks appLogger
             let loggerName = fst appLogger ++ "." ++ show wh
             ioe $ (loggerName,) <$> getLogger loggerName
+
+        initialWindowState win =
+                WindowState <$> (uncurry V2 <$> getWindowPos win)
+                            <*> (uncurry V2 <$> getWindowSize win)
+                            <*> ((FocusState'Focused ==) <$> getWindowFocused win)
+                            <*> ((IconifyState'Iconified ==) <$> getWindowIconified win)
+                            <*> pure False
+                            <*> pure False
+                            <*> pure True -- FIXME: manual check
 
 -- TODO maybe make current
 windowInfo :: (Throws InternalException l) => Window -> Application l [String]

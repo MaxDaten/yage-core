@@ -15,14 +15,14 @@ module Yage.Core.Application.Types
     , GLFW.OpenGLProfile(..)
     , GLFW.WindowHint(..)
 
-    , module EventTypes
+    , module Types
     ) where
 
 import           Yage.Prelude                 hiding (pass)
 import           Data.Version                 (Version)
 
 import           Control.Monad.Exception
-import           Control.Concurrent.STM       (TQueue)
+import           Control.Concurrent.STM       (TVar)
 import           Control.Monad.RWS.Strict     (RWST)
 import           Control.Monad.State
 import           Control.Monad.Reader
@@ -33,12 +33,12 @@ import           System.Log.Logger            (Logger)
 import qualified System.Log.Logger            as Logger (Priority)
 import           System.Log.Formatter         (LogFormatter)
 
-import qualified Graphics.UI.GLFW             as GLFW (WindowHint(..), OpenGLProfile(..), Window)
+import qualified Graphics.UI.GLFW             as GLFW (WindowHint(..), OpenGLProfile(..), Window, Error)
 
-import           Yage.Core.Application.Internal.Event.Types as EventTypes
+import           Yage.Core.Application.Internal.Types          as Types
 
 --------------------------------------------------------------------------------
-type GLFWError = Error
+type GLFWError = GLFW.Error
 
 --------------------------------------------------------------------------------
 
@@ -54,16 +54,16 @@ data WindowConfig = WindowConfig
 type WindowHandle = GLFW.Window
 
 data Window = Window
-    { winTitle  :: !String
-    , winSize   :: !(Int, Int)
-    , winHandle :: !WindowHandle
-    , winLogger :: (String, Logger) -- | Logger-Name and Logger
-    , winEventQ :: TQueue Event
+    { winTitle   :: !String
+    , winHandle  :: !WindowHandle
+    , winLogger  :: (String, Logger) -- | Logger-Name and Logger
+    , winState   :: TVar WindowState
+    , inputState :: TVar InputState
     }
 
 instance Show Window where
-    show Window {winTitle, winSize} =
-        format "Window: {0} - Size: {1}" [winTitle, show winSize]
+    show Window {winTitle} =
+        format "Window: {0} - state: {1}" [winTitle, "N/A"]
 
 
 data ApplicationState = ApplicationState
@@ -73,8 +73,7 @@ data ApplicationState = ApplicationState
     deriving (Show)
 
 data ApplicationEnv = ApplicationEnv
-    { appEventQ  :: TQueue Event
-    , appConfig  :: ApplicationConfig
+    { appConfig  :: ApplicationConfig
     , appLogger  :: (String, Logger) -- | Logger-Name and Logger
     , coreversion :: Version
     }

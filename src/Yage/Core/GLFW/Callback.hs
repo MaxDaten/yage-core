@@ -21,8 +21,8 @@ module Yage.Core.GLFW.Callback
     , GLFW.KeyCallback, GLFW.CharCallback
     , GLFW.MouseButtonCallback, MousePositionCallback, MouseEnterCallback, GLFW.ScrollCallback
     , GLFW.ErrorCallback
-    , GLFW.FocusState, GLFW.IconifyState, GLFW.MouseButton, GLFW.MouseButtonState, GLFW.ModifierKeys
-    , GLFW.CursorState, GLFW.Key, GLFW.KeyState
+    , GLFW.FocusState(..), GLFW.IconifyState(..), GLFW.MouseButton(..), GLFW.MouseButtonState(..), GLFW.ModifierKeys(..)
+    , GLFW.CursorState(..), GLFW.Key(..), GLFW.KeyState(..)
     ) where
 
 import Yage.Prelude

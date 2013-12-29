@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleContexts           #-}
 
-module Yage.Core.GLFW.Window where
+module Yage.Core.GLFW.Window
+    ( module Yage.Core.GLFW.Window
+    , module GLFWExports
+    ) where
 
 import           Yage.Prelude
 import           Control.Monad                   (mapM_)
@@ -8,6 +11,7 @@ import           Control.Monad.Exception
 import           Yage.Core.Application.Exception
 
 import qualified Graphics.UI.GLFW as GLFW
+import           Graphics.UI.GLFW as GLFWExports (getWindowPos, getWindowSize, getWindowFocused, getWindowIconified)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.GLFW.Base
