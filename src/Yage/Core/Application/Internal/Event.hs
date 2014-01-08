@@ -7,25 +7,23 @@ module Yage.Core.Application.Internal.Event
     ( module Yage.Core.Application.Internal.Event
     , module Polling
     , module Types
+    , module GLFW
     ) where
 
 import           Yage.Prelude
 
-import qualified Data.Set                       as Set
-import           Data.Monoid
-
 import           Control.Concurrent.STM         (TVar, modifyTVar', atomically)
+import           Linear                         (V2(..))
 
 import           Yage.Core.GLFW.Callback
 import           Yage.Core.GLFW.Event           as Polling (pollEvents, waitEvents)
 
 import           Yage.Core.Application.Types    as Types
-import           Yage.Core.GLFW.Callback        as Types ( FocusState(..), IconifyState(..), MouseButton(..), MouseButtonState(..), ModifierKeys(..)
-                                                         , CursorState(..), Key(..), KeyState(..))
+import           Yage.Core.GLFW.Callback        as GLFW ( FocusState(..), IconifyState(..), MouseButton(..), MouseButtonState(..), ModifierKeys(..)
+                                                         , CursorState(..), Key(..), KeyState(..), JoystickButtonState(..))
 import           Yage.Core.Application.Logging
 import           Yage.Core.Application.Exception
 
-import           Linear
 
 
 registerGlobalErrorCallback :: (Throws InternalException l)
@@ -38,86 +36,90 @@ registerGlobalErrorCallback logger = do
 --------------------------------------------------------------------------------
 
 
-windowPositionCallback  :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
-windowSizeCallback      :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
-windowCloseCallback     :: TVar WindowState -> WindowHandle                      -> IO ()
-windowRefreshCallback   :: TVar WindowState -> WindowHandle                      -> IO ()
-windowFocusCallback     :: TVar WindowState -> WindowHandle -> FocusState        -> IO ()
-windowIconifyCallback   :: TVar WindowState -> WindowHandle -> IconifyState      -> IO ()
-windowMouseEnterCallback:: TVar WindowState -> WindowHandle -> CursorState       -> IO ()
---framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
-mouseButtonCallback     :: TVar InputState -> WindowHandle -> MouseButton -> MouseButtonState -> ModifierKeys -> IO ()
-mousePositionCallback   :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
-scrollCallback          :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
---keyCallback             :: TVar InputState -> WindowHandle -> Key -> Int -> GLFW.KeyState -> ModifierKeys -> IO ()
---charCallback            :: TVar InputState -> WindowHandle -> Char              -> IO ()
-
-windowPositionCallback winVar _ x y =
+internalWindowPositionCallback  :: TVar WindowState -> Maybe (WindowHandle -> Int -> Int -> IO ())
+internalWindowPositionCallback winVar = return $ \_ x y ->
     atomically $ modifyTVar' winVar $ winPosition .~ V2 x y
 
-windowSizeCallback winVar _ w h =
+internalWindowSizeCallback      :: TVar WindowState -> Maybe (WindowHandle -> Int -> Int -> IO ())
+internalWindowSizeCallback winVar = return $ \_ w h ->
     atomically $ modifyTVar' winVar $ winSize .~ V2 w h
 
-windowCloseCallback winVar _ =
+internalWindowCloseCallback     :: TVar WindowState -> Maybe (WindowHandle -> IO ())
+internalWindowCloseCallback winVar = return $ \_ ->
     atomically $ modifyTVar' winVar $ winShouldClose .~ True
 
-windowRefreshCallback winVar _ =
+internalWindowRefreshCallback   :: TVar WindowState -> Maybe (WindowHandle -> IO ())
+internalWindowRefreshCallback winVar = return $ \_ ->
     atomically $ modifyTVar' winVar $ winRefresh .~ True
 
-windowFocusCallback winVar _ focusState =
+internalWindowFocusCallback     :: TVar WindowState -> Maybe (WindowHandle -> FocusState -> IO ())
+internalWindowFocusCallback winVar = return $ \_ focusState ->
     atomically $ modifyTVar' winVar $ winFocus .~ (focusState == FocusState'Focused)
 
-windowIconifyCallback winVar _ iconifyState =
+internalWindowIconifyCallback   :: TVar WindowState -> Maybe (WindowHandle -> IconifyState      -> IO ())
+internalWindowIconifyCallback winVar = return $ \_ iconifyState ->
     atomically $ modifyTVar' winVar $ winIconified .~ (iconifyState == IconifyState'Iconified)
 
-windowMouseEnterCallback winVar _ cursorState =
+internalWindowCursorEnterCallback:: TVar WindowState -> Maybe (WindowHandle -> CursorState       -> IO ())
+internalWindowCursorEnterCallback winVar = return $ \_ cursorState ->
     atomically $ modifyTVar' winVar $ winMouseIn .~ (cursorState == CursorState'InWindow)
+{--
+
+--framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
 -- framebufferSizeCallback winVar   win w h        = undefined
 
 -- TODO: respect modifier
+mouseButtonCallback     :: TVar InputState -> WindowHandle -> GLFW.MouseButton -> MouseButtonState -> ModifierKeys -> IO ()
 mouseButtonCallback inputVar _ button MouseButtonState'Pressed _modifier  =
     atomically $ modifyTVar' inputVar $ mouse.mbPressed %~ Set.insert (fromEnum button)
 mouseButtonCallback inputVar _ button MouseButtonState'Released _modifier  =
     atomically $ modifyTVar' inputVar $ mouse.mbPressed %~ Set.delete (fromEnum button)
 
+mousePositionCallback   :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
 mousePositionCallback inputVar _ x y =
     atomically $ modifyTVar' inputVar $ mouse.mousePosition .~ V2 x y
 
+scrollCallback          :: TVar InputState -> WindowHandle -> Double -> Double  -> IO ()
 scrollCallback inputVar _ offX offY        =
     atomically $ modifyTVar' inputVar $ mouse.mouseScroll +~ V2 offX offY
 
+--keyCallback             :: TVar InputState -> WindowHandle -> Key -> Int -> GLFW.KeyState -> ModifierKeys -> IO ()
 keyCallback inputVar win key _charcode KeyState'Released _modifier =
     atomically $ modifyTVar' inputVar $ keyboard.keyMap %~ Set.delete key
-
-
 keyCallback inputVar win key _charcode keystate _modifier =
     atomically $ modifyTVar' inputVar $ keyboard.keyMap %~ Set.insert key
+
+--}
+--charCallback            :: TVar InputState -> WindowHandle -> Char              -> IO ()
 --charCallback            inputVar win c          = undefined
 
 --------------------------------------------------------------------------------
 
 
-
-registerWindowCallbacks :: (Throws InternalException l) => Window -> Maybe Logger -> Application l ()
-registerWindowCallbacks win ml =
-    let stateVar = winState win
-        inputVar = inputState win
-    in do
+registerWindowCallbacks :: (Throws InternalException l, EventCtr ectr) => Window -> ectr -> Application l ()
+registerWindowCallbacks win@Window{winState} inputCtr = do
     -- annoying setup
-    setWindowPositionCallback   win $ Just $ windowPositionCallback stateVar
-    setWindowSizeCallback       win $ Just $ windowSizeCallback stateVar
-    setWindowCloseCallback      win $ Just $ windowCloseCallback stateVar
-    setWindowRefreshCallback    win $ Just $ windowRefreshCallback stateVar
-    setWindowFocusCallback      win $ Just $ windowFocusCallback stateVar
-    setWindowIconifyCallback    win $ Just $ windowIconifyCallback stateVar
-    setMouseEnterCallback       win $ Just $ windowMouseEnterCallback stateVar
-    --setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback stateVar
+    setWindowPositionCallback   win $ internalWindowPositionCallback winState >>
+                                      windowPositionCallback inputCtr
+    setWindowSizeCallback       win $ internalWindowSizeCallback winState >>
+                                      windowSizeCallback inputCtr
+    setWindowCloseCallback      win $ internalWindowCloseCallback winState >>
+                                      windowCloseCallback inputCtr
+    setWindowRefreshCallback    win $ internalWindowRefreshCallback winState >>
+                                      windowRefreshCallback inputCtr
+    setWindowFocusCallback      win $ internalWindowFocusCallback winState >>
+                                      windowFocusCallback inputCtr
+    setWindowIconifyCallback    win $ internalWindowIconifyCallback winState >>
+                                      windowIconifyCallback inputCtr
+    setCursorEnterCallback      win $ internalWindowCursorEnterCallback winState >>
+                                      cursorEnterCallback inputCtr
+    --setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback winVar
 
-    setKeyCallback              win $ Just $ keyCallback inputVar
+    setKeyCallback              win $ keyCallback inputCtr
     --setCharCallback             win $ Just $ charCallback inputVar
 
-    setMouseButtonCallback      win $ Just $ mouseButtonCallback inputVar
-    setMousePositionCallback    win $ Just $ mousePositionCallback inputVar
-    setScrollCallback           win $ Just $ scrollCallback inputVar
+    setMouseButtonCallback      win $ mouseButtonCallback inputCtr
+    setCursorPositionCallback   win $ cursorPositionCallback inputCtr
+    setScrollCallback           win $ scrollCallback inputCtr
 
 --------------------------------------------------------------------------------

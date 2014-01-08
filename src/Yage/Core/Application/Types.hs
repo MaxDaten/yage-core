@@ -53,17 +53,13 @@ data WindowConfig = WindowConfig
 
 type WindowHandle = GLFW.Window
 
+
 data Window = Window
     { winTitle   :: !String
     , winHandle  :: !WindowHandle
     , winLogger  :: (String, Logger) -- | Logger-Name and Logger
     , winState   :: TVar WindowState
-    , inputState :: TVar InputState
     }
-
-instance Show Window where
-    show Window {winTitle} =
-        format "Window: {0} - state: {1}" [winTitle, "N/A"]
 
 
 data ApplicationState = ApplicationState
@@ -85,6 +81,10 @@ data ApplicationConfig = ApplicationConfig
     }
 
 --------------------------------------------------------------------------------
+
+instance Show Window where
+    show Window {winTitle} =
+        format "Window: {0} - state: {1}" [winTitle, "N/A"]
 
 
 -- from: http://hackage.haskell.org/package/control-monad-exception-monadsfd-0.10.3/src/extensions/Control/Monad/Exception/MonadsFD.hs

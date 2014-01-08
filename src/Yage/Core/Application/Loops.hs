@@ -10,14 +10,18 @@ import           Control.Monad.State             (gets)
 import           Yage.Core.Application
 import           Yage.Core.Application.Exception
 
-basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l)
+
+
+basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l, EventCtr ectr)
                 => WindowConfig                                                    -- | window size and hints
-                -> b                                                               -- | initial value for app calc
-                -> (Window -> b -> Application l b)  -- | the application
-                -> Application l b
-basicWindowLoop (WindowConfig (width, height) hints) initial loop = do
-    win <- createWindowWithHints hints width height =<< gets appTitle
-    appLoopStep win initial loop
+                -> ectr                                                            -- | event controller for the window
+                -> (Window -> ectr -> Application l ectr)                          -- | the application
+                -> Application l ectr
+basicWindowLoop (WindowConfig (width, height) hints) ectr loop = do
+    title <- gets appTitle
+    win   <- createWindowWithHints hints width height title
+    registerWindowCallbacks win ectr
+    appLoopStep win ectr loop
 
 
 appLoopStep :: (Throws ApplicationException l, Throws InternalException l)
@@ -28,6 +32,9 @@ appLoopStep :: (Throws ApplicationException l, Throws InternalException l)
 appLoopStep win' b' app = do
     x <- withWindowAsCurrent win' $ \win -> do
             pollEvents
+-- TODO EVENTS
+-- update input controller (get new ictr and re-register window callbacks? (think about the atomization))
+-- retain state from input-ctr (b param?) or put the input ctr into the app ? !!! thats it
 
             result      <- app win b'
 

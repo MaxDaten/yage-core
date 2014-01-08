@@ -25,7 +25,7 @@ iconifyWindow :: (Throws InternalException l) => Window -> Application l ()
 iconifyWindow = glfw . GLFW.iconifyWindow . winHandle
 
 {-# INLINE makeContextCurrent #-}
-makeContextCurrent :: (Throws InternalException l) => Maybe Window -> Application l ()
+makeContextCurrent :: (Throws InternalException l) => Maybe (Window) -> Application l ()
 makeContextCurrent mwin = glfw $ GLFW.makeContextCurrent (winHandle <$> mwin)
 
 {-# INLINE directlyDestroyWindow #-}

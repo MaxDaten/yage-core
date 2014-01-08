@@ -134,7 +134,6 @@ execApplication title conf app = do
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 createWindow width height title = do
     win <- mkWindow width height title
-    registerWindowCallbacks win $ Just $ getWinLogger win
     addWindow win
     withWindowAsCurrent win $ \win -> mapM_ (debugM . winS win) =<< windowInfo win
     return win
@@ -144,7 +143,7 @@ createWindow width height title = do
         winS win = ((show . winHandle $ win) ++)
 
 
-createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l Window
+createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l (Window)
 createWindowWithHints hints width height title = withWindowHints hints $ \_ -> createWindow width height title
 
 
@@ -156,7 +155,7 @@ withWindowAsCurrent win f = do
     return r
 
 
-windowByTitle :: String -> Application l (Maybe Window)
+windowByTitle :: String -> Application l (Maybe (Window))
 windowByTitle title = do
     wins <- gets appWindows
     return $ T.lookup (BS.pack title) wins
@@ -164,7 +163,7 @@ windowByTitle title = do
 
 
 -- TODO effective version
-windowByHandle :: (Throws InternalException l) => WindowHandle -> Application l Window
+windowByHandle :: (Throws InternalException l) => WindowHandle -> Application l (Window)
 windowByHandle wh = do
     ws <- gets appWindows
     let wins = T.toListBy (flip const) ws
@@ -216,8 +215,7 @@ mkWindow width height title = do
     wh <- createWindowHandle width height title Nothing Nothing
     logger     <- getWindowLogger wh
     winVar     <- ioe $ newTVarIO =<< initialWindowState wh
-    inputVar   <- ioe $ newTVarIO mempty
-    return $ Window title wh logger winVar inputVar
+    return $ Window title wh logger winVar
     where
         getWindowLogger wh = do
             appLogger      <- asks appLogger
