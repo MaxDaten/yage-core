@@ -6,6 +6,7 @@
 module Yage.Core.Application.Internal.Types where
 
 import           Yage.Prelude
+import           Yage.Lens
 
 import Linear (V2)
 import qualified Graphics.UI.GLFW as GLFW

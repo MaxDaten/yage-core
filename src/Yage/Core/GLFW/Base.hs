@@ -5,7 +5,6 @@ module Yage.Core.GLFW.Base where
 import           Yage.Prelude
 import           Control.Monad.Exception
 import           Yage.Core.Application.Exception
-import           Control.Monad (unless)
 
 import qualified Graphics.UI.GLFW as GLFW
 

@@ -6,7 +6,6 @@ module Yage.Core.GLFW.Window
     ) where
 
 import           Yage.Prelude
-import           Control.Monad                   (mapM_)
 import           Control.Monad.Exception
 import           Yage.Core.Application.Exception
 

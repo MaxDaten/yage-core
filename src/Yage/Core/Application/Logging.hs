@@ -14,10 +14,8 @@ module Yage.Core.Application.Logging
     ) where
 
 import           Yage.Prelude
-import           Data.List                       ((++), drop, length, isPrefixOf)
 
 import           Control.Monad.Reader            (asks)
-import           Control.Monad                   (liftM)
 
 import           System.Log.Logger               (Logger, logL)
 import           System.Log.Logger               as Logger ( Logger, Priority(..), getLogger, getRootLogger
@@ -28,10 +26,9 @@ import           System.Log.Handler.Simple       as HandlerSimple
 import qualified System.Log.Formatter            as Formatter
 
 import           System.Console.ANSI
-import           Control.Concurrent (myThreadId)
-import           System.Posix.Process (getProcessID)
-import           System.Locale (defaultTimeLocale)
-import           Data.Time (getZonedTime,getCurrentTime,formatTime)
+import           Control.Concurrent             (myThreadId)
+import           System.Posix.Process           (getProcessID)
+import           Data.Time                      (getZonedTime)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception

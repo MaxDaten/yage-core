@@ -35,19 +35,14 @@ import qualified Data.ByteString.Char8           as BS (pack)
 import           Data.Trie                       (Trie)
 import qualified Data.Trie                       as T (delete, empty, insert,
                                                        lookup, toListBy)
-import           Data.List                       (find, (++), filter)
+
 import           Data.Char                       (isAlphaNum)
 
-import           Control.Monad                   (mapM_)
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
 import           Control.Concurrent.STM          (newTVarIO)
-
-import           System.IO                       (stderr)
-
---import qualified Graphics.UI.GLFW                as GLFW (Window)
 
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base

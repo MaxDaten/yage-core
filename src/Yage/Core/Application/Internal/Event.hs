@@ -11,6 +11,7 @@ module Yage.Core.Application.Internal.Event
     ) where
 
 import           Yage.Prelude
+import           Yage.Lens
 
 import           Control.Concurrent.STM         (TVar, modifyTVar', atomically)
 import           Linear                         (V2(..))
