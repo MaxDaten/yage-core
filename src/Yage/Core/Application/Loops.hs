@@ -9,6 +9,8 @@ import           Control.Monad.State             (gets)
 
 import           Yage.Core.Application
 import           Yage.Core.Application.Exception
+import           System.Mem
+import           Yage.Core.Application.Utils
 
 
 
@@ -41,4 +43,5 @@ appLoopStep win' b' app = do
             swapBuffers win
             return result
     quit <- windowShouldClose win'
+    ioe $ performGC
     if quit then return x else (appLoopStep win' x app)
