@@ -42,13 +42,13 @@ instance EventCtr NullEventController where
 
 
 data WindowState = WindowState
-    { _winPosition    :: V2 Int
-    , _winSize        :: V2 Int
-    , _winFocus       :: Bool
-    , _winIconified   :: Bool
-    , _winShouldClose :: Bool
-    , _winRefresh     :: Bool
-    , _winMouseIn     :: Bool
+    { _winPosition    :: !(V2 Int)
+    , _winSize        :: !(V2 Int)
+    , _winFocus       :: !Bool
+    , _winIconified   :: !Bool
+    , _winShouldClose :: !Bool
+    , _winRefresh     :: !Bool
+    , _winMouseIn     :: !Bool
     }
 
 makeLenses ''WindowState
