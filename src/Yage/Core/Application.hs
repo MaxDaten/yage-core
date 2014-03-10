@@ -60,8 +60,9 @@ import Paths_yage_core
 
 initialState :: ApplicationState
 initialState = ApplicationState
-    { appTitle = ""
+    { appTitle   = ""
     , appWindows = T.empty
+    , appGCTime  = 0
     }
 
 initalEnv :: String -> ApplicationConfig -> IO ApplicationEnv

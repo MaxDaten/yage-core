@@ -4,7 +4,7 @@ module Yage.Core.Application.Loops where
 
 import           Yage.Prelude hiding (catch)
 
-import           Control.Monad.State             (gets)
+import           Control.Monad.State             (gets, modify)
 
 
 import           Yage.Core.Application
@@ -43,5 +43,6 @@ appLoopStep win' b' app = do
             swapBuffers win
             return result
     quit <- windowShouldClose win'
-    ioe $ performGC
+    gcTime <- ioe $ ioTime $ performGC
+    modify (\st -> st{ appGCTime = snd gcTime } )
     if quit then return x else (appLoopStep win' x app)

@@ -65,6 +65,7 @@ data Window = Window
 data ApplicationState = ApplicationState
     { appTitle   :: !String
     , appWindows :: Trie Window
+    , appGCTime  :: Double           -- | in seconds
     }
     deriving (Show)
 

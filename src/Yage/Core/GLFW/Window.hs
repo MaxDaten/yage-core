@@ -46,6 +46,10 @@ setWindowShouldClose win b = glfw . (`GLFW.setWindowShouldClose` b) . winHandle 
 setGlobalWindowHints :: (Throws InternalException l) => [GLFW.WindowHint] -> Application l ()
 setGlobalWindowHints = mapM_ (glfw . GLFW.windowHint)
 
+{-# INLINE setWindowTitle #-}
+setWindowTitle :: (Throws InternalException l) => Window -> String -> Application l ()
+setWindowTitle win title = glfw . (`GLFW.setWindowTitle` title) . winHandle $ win
+
 revertGlobalWindowHints :: (Throws InternalException l) => Application l ()
 revertGlobalWindowHints = glfw GLFW.defaultWindowHints
 
