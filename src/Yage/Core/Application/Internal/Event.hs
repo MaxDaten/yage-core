@@ -13,6 +13,7 @@ module Yage.Core.Application.Internal.Event
 import           Yage.Prelude
 import           Yage.Lens
 
+import           Control.Monad                  (msum)
 import           Control.Concurrent.STM         (TVar, modifyTVar', atomically)
 import           Linear                         (V2(..))
 
@@ -64,6 +65,10 @@ internalWindowIconifyCallback winVar = return $ \_ iconifyState ->
 internalWindowCursorEnterCallback:: TVar WindowState -> Maybe (WindowHandle -> CursorState       -> IO ())
 internalWindowCursorEnterCallback winVar = return $ \_ cursorState ->
     atomically $ modifyTVar' winVar $ winMouseIn .~ (cursorState == CursorState'InWindow)
+
+internalFramebufferSizeCallback :: TVar WindowState -> Maybe (WindowHandle -> Int -> Int -> IO ())
+internalFramebufferSizeCallback winVar = return $ \_ w h ->
+    atomically $ modifyTVar' winVar $ fbSize .~ traceShow' (V2 w h)
 {--
 
 --framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
@@ -100,21 +105,14 @@ keyCallback inputVar win key _charcode keystate _modifier =
 registerWindowCallbacks :: (Throws InternalException l, EventCtr ectr) => Window -> ectr -> Application l ()
 registerWindowCallbacks win@Window{winState} inputCtr = do
     -- annoying setup
-    setWindowPositionCallback   win $ internalWindowPositionCallback winState >>
-                                      windowPositionCallback inputCtr
-    setWindowSizeCallback       win $ internalWindowSizeCallback winState >>
-                                      windowSizeCallback inputCtr
-    setWindowCloseCallback      win $ internalWindowCloseCallback winState >>
-                                      windowCloseCallback inputCtr
-    setWindowRefreshCallback    win $ internalWindowRefreshCallback winState >>
-                                      windowRefreshCallback inputCtr
-    setWindowFocusCallback      win $ internalWindowFocusCallback winState >>
-                                      windowFocusCallback inputCtr
-    setWindowIconifyCallback    win $ internalWindowIconifyCallback winState >>
-                                      windowIconifyCallback inputCtr
-    setCursorEnterCallback      win $ internalWindowCursorEnterCallback winState >>
-                                      cursorEnterCallback inputCtr
-    --setFramebufferSizeCallback  win $ Just $ framebufferSizeCallback winVar
+    setWindowPositionCallback   win $ msum [ internalWindowPositionCallback winState,    windowPositionCallback inputCtr    ]
+    setWindowSizeCallback       win $ msum [ internalWindowSizeCallback winState,        windowSizeCallback inputCtr        ]
+    setWindowCloseCallback      win $ msum [ internalWindowCloseCallback winState,       windowCloseCallback inputCtr       ]
+    setWindowRefreshCallback    win $ msum [ internalWindowRefreshCallback winState,     windowRefreshCallback inputCtr     ]
+    setWindowFocusCallback      win $ msum [ internalWindowFocusCallback winState,       windowFocusCallback inputCtr       ]
+    setWindowIconifyCallback    win $ msum [ internalWindowIconifyCallback winState,     windowIconifyCallback inputCtr     ]
+    setCursorEnterCallback      win $ msum [ internalWindowCursorEnterCallback winState, cursorEnterCallback inputCtr       ]
+    setFramebufferSizeCallback  win $ msum [ internalFramebufferSizeCallback winState,   framebufferSizeCallback inputCtr   ]
 
     setKeyCallback              win $ keyCallback inputCtr
     --setCharCallback             win $ Just $ charCallback inputVar

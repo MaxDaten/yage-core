@@ -205,7 +205,6 @@ retrieve :: ByteString -> Trie a -> (Maybe a, Trie a)
 retrieve q tri = (T.lookup q tri, T.delete q tri)
 
 
-{-# INLINE mkWindow #-}
 mkWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window
 mkWindow width height title = do
     wh <- createWindowHandle width height title Nothing Nothing
@@ -226,6 +225,7 @@ mkWindow width height title = do
                             <*> pure False
                             <*> pure False
                             <*> pure True -- FIXME: manual check
+                            <*> (uncurry V2 <$> getFramebufferSize win)
 
 -- TODO maybe make current
 windowInfo :: (Throws InternalException l) => Window -> Application l [String]

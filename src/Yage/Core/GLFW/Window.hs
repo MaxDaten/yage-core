@@ -10,7 +10,7 @@ import           Control.Monad.Exception
 import           Yage.Core.Application.Exception
 
 import qualified Graphics.UI.GLFW as GLFW
-import           Graphics.UI.GLFW as GLFWExports (getWindowPos, getWindowSize, getWindowFocused, getWindowIconified)
+import           Graphics.UI.GLFW as GLFWExports (getWindowPos, getWindowSize, getWindowFocused, getWindowIconified, getFramebufferSize)
 
 import           Yage.Core.Application.Types
 import           Yage.Core.GLFW.Base
