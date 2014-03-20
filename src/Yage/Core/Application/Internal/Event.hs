@@ -68,7 +68,7 @@ internalWindowCursorEnterCallback winVar = return $ \_ cursorState ->
 
 internalFramebufferSizeCallback :: TVar WindowState -> Maybe (WindowHandle -> Int -> Int -> IO ())
 internalFramebufferSizeCallback winVar = return $ \_ w h ->
-    atomically $ modifyTVar' winVar $ fbSize .~ traceShow' (V2 w h)
+    atomically $ modifyTVar' winVar $ fbSize .~ V2 w h
 {--
 
 --framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
