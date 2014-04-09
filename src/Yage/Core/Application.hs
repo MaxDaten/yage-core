@@ -42,7 +42,6 @@ import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
-import           Control.Concurrent.STM          (newTVarIO)
 
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base

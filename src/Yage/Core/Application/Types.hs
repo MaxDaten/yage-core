@@ -22,7 +22,6 @@ import           Yage.Prelude                 hiding (pass)
 import           Data.Version                 (Version)
 
 import           Control.Monad.Exception
-import           Control.Concurrent.STM       (TVar)
 import           Control.Monad.RWS.Strict     (RWST)
 import           Control.Monad.State
 import           Control.Monad.Reader

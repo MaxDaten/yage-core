@@ -14,7 +14,6 @@ import           Yage.Prelude
 import           Yage.Lens
 
 import           Control.Monad                  (msum)
-import           Control.Concurrent.STM         (TVar, modifyTVar', atomically)
 import           Linear                         (V2(..))
 
 import           Yage.Core.GLFW.Callback
@@ -69,6 +68,7 @@ internalWindowCursorEnterCallback winVar = return $ \_ cursorState ->
 internalFramebufferSizeCallback :: TVar WindowState -> Maybe (WindowHandle -> Int -> Int -> IO ())
 internalFramebufferSizeCallback winVar = return $ \_ w h ->
     atomically $ modifyTVar' winVar $ fbSize .~ V2 w h
+
 {--
 
 --framebufferSizeCallback :: TVar WindowState -> WindowHandle -> Int -> Int        -> IO ()
