@@ -83,13 +83,15 @@ coloredLogFormatter = formatter
         msgColor prio
             | prio == Logger.DEBUG   = debugColor
             | prio == Logger.WARNING = warnColor
+            | prio == Logger.NOTICE  = noticeColor
             | prio >= Logger.ERROR   = errColor
             | otherwise              = normColor
         timeFormat = "%F %X %Z"
         normColor  = setSGRCode []
-        warnColor  = setSGRCode [SetColor Foreground Vivid Yellow]
-        errColor   = setSGRCode [SetColor Foreground Vivid Red]
-        debugColor = setSGRCode [SetColor Foreground Vivid Blue]
+        debugColor = setSGRCode [ SetColor Foreground Vivid Blue   ]
+        warnColor  = setSGRCode [ SetColor Foreground Vivid Yellow ]
+        noticeColor= setSGRCode [ SetColor Foreground Dull  Yellow ]
+        errColor   = setSGRCode [ SetColor Foreground Vivid Red    ]
         reset      = normColor
 
 --------------------------------------------------------------------------------

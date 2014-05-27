@@ -21,6 +21,7 @@ module Yage.Core.Application
     , defaultAppConfig
     , createWindow, windowByTitle, windowByHandle, destroyWindow
     , withWindowAsCurrent, withWindowHints, createWindowWithHints
+    , globalLogLevel
     , io
 
     , module Event
@@ -46,7 +47,7 @@ import           Control.Monad.Exception
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
-import           Yage.Core.Application.Types     as Types
+import           Yage.Core.Application.Types     as Types  hiding (appConfig, appLogger)
 import           Yage.Core.Application.Event     as Event
 import           Yage.Core.Application.Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
@@ -124,6 +125,12 @@ execApplication title conf app = do
                 -- TODO set only app logger
                 updateGlobalLogger rootLoggerName (setHandlers [h])
                 updateGlobalLogger rootLoggerName (setLevel prio)
+
+
+
+globalLogLevel :: l ~ AnyException => Priority -> Application l ()
+globalLogLevel = io . updateGlobalLogger rootLoggerName . setLevel
+
 
 
 createWindow :: (Throws InternalException l) => Int -> Int -> String -> Application l Window

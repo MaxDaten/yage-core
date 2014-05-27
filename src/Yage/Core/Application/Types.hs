@@ -69,8 +69,8 @@ data ApplicationState = ApplicationState
     deriving (Show)
 
 data ApplicationEnv = ApplicationEnv
-    { appConfig  :: ApplicationConfig
-    , appLogger  :: (String, Logger) -- | Logger-Name and Logger
+    { appConfig   :: ApplicationConfig
+    , appLogger   :: (String, Logger) -- | Logger-Name and Logger
     , coreversion :: Version
     }
 
