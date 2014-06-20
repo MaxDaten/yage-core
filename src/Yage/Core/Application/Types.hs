@@ -1,9 +1,10 @@
-{-# OPTIONS_GHC -fno-warn-orphans   #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 {-# LANGUAGE NamedFieldPuns         #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE RankNTypes             #-}
 
 
 
@@ -83,8 +84,8 @@ data ApplicationConfig = ApplicationConfig
 --------------------------------------------------------------------------------
 
 instance Show Window where
-    show Window {winTitle} =
-        format "Window: {0} - state: {1}" [winTitle, "N/A"]
+    show Window {winTitle} = show $
+        format "Window: {} - state: {}" ( Shown winTitle, Shown "N/A" )
 
 
 -- from: http://hackage.haskell.org/package/control-monad-exception-monadsfd-0.10.3/src/extensions/Control/Monad/Exception/MonadsFD.hs

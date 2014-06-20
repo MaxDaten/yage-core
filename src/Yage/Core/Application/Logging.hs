@@ -10,7 +10,6 @@ module Yage.Core.Application.Logging
     , module Logger
     -- , module Formatter
     , module HandlerSimple
-    , module Format
     ) where
 
 import           Yage.Prelude
@@ -33,7 +32,6 @@ import           Data.Time                      (getZonedTime)
 import           Yage.Core.Application.Types
 import           Yage.Core.Application.Exception
 import           Yage.Core.Application.Utils
-import           Text.Format                    as Format
 
 --------------------------------------------------------------------------------
 
@@ -57,10 +55,10 @@ alertM     = logM Logger.ALERT
 emergencyM = logM Logger.EMERGENCY
 
 
-logM :: (Throws InternalException l) => Logger.Priority -> String -> Application l ()
+logM :: (Throws InternalException l, Show a) => Logger.Priority -> a -> Application l ()
 logM pri msg = do
     l <- getAppLogger
-    ioe $ logL l pri msg
+    ioe $ logL l pri (show msg)
 
 --------------------------------------------------------------------------------
 

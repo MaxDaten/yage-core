@@ -91,13 +91,13 @@ execApplication title conf app = do
 
     (eResult, st') <- evalRWST theApp env (initialState { appTitle = title })
 
-    logL rootL NOTICE $ format "Final state:[{0}]" [show st']
+    logL rootL NOTICE $ unpack $ format "Final state:[{}]" ( Only $ Shown st' )
 
     case eResult of
         Right result ->
             removeAllHandlers >> return result
         Left ex      -> do
-            logL rootL CRITICAL $ format ">> Application ended unexpectedly with: {0}" [show ex]
+            logL rootL CRITICAL $ unpack $ format ">> Application ended unexpectedly with: {}" ( Only $ Shown ex )
             error $ show ex
     where
         runApp app = do

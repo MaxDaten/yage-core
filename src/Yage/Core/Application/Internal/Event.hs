@@ -31,7 +31,7 @@ registerGlobalErrorCallback :: (Throws InternalException l)
                             => Logger -> Application l ()
 registerGlobalErrorCallback logger = do
     --eventQ <- asks appEventQ
-    setErrorCallback $ Just $ \err msg -> logL logger CRITICAL (format "GLFWError {0} - {1}" [show err, msg])
+    setErrorCallback $ Just $ \err msg -> logL logger CRITICAL $ unpack $ format "GLFWError {} - {}" (Shown err, Shown msg)
 
 
 --------------------------------------------------------------------------------
