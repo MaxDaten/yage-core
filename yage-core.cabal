@@ -44,6 +44,8 @@ library
                        Yage.Core.Application.Internal.Types
                        Yage.Core.Application.Internal.Event
 
+  ghc-options:          -j8
+
   if flag(perf)
     ghc-options:        -threaded -O2
   else
@@ -64,7 +66,7 @@ library
                        , old-locale              == 1.0.*
                        , unix                    >= 2.6      &&  < 2.8
 
-                       , lens                    == 4.2.*
+                       , lens                    == 4.3.*
                        , linear                  == 1.10.*
                        , hslogger                >= 1.2
                        , bytestring              >= 0.10
@@ -93,6 +95,6 @@ executable simpleApp
 
 
     if flag(dev)
-      ghc-options:        -Wall
+      ghc-options:        -Wall -j8
 
     default-language:     Haskell2010
