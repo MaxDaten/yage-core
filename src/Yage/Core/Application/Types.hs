@@ -27,6 +27,7 @@ import           Control.Monad.RWS.Strict     (RWST)
 import           Control.Monad.State
 import           Control.Monad.Reader
 import           Control.Monad.Writer
+import           Control.Monad.Trans.Resource
 import           Data.Trie                    (Trie)
 
 import           System.Log.Logger            (Logger)
@@ -42,7 +43,7 @@ type GLFWError = GLFW.Error
 
 --------------------------------------------------------------------------------
 
-type Application l a = EMT l (RWST ApplicationEnv () ApplicationState IO) a
+type Application l a = EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a
 
 
 data WindowConfig = WindowConfig

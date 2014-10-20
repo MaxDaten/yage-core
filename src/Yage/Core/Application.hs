@@ -24,6 +24,8 @@ module Yage.Core.Application
     , globalLogLevel
     , io
 
+    , allocate, register, release, unprotect, resourceMask
+
     , module Event
     , module Window
     , module Types
@@ -43,6 +45,8 @@ import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.State             (get, gets, put, modify)
 import           Control.Monad.Reader            (asks)
 import           Control.Monad.Exception
+import           Control.Monad.Trans.Resource
+
 
 import           Yage.Core.Application.Exception
 import           Yage.Core.GLFW.Base
@@ -89,7 +93,7 @@ execApplication title conf app = do
     rootL      <- getRootLogger
     env        <- initalEnv title conf
 
-    (eResult, st') <- evalRWST theApp env (initialState { appTitle = title })
+    (eResult, st') <- runResourceT $ evalRWST theApp env (initialState { appTitle = title })
 
     logL rootL NOTICE $ unpack $ format "Final state:[{}]" ( Only $ Shown st' )
 
