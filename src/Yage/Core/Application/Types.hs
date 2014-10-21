@@ -1,15 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-{-# LANGUAGE NamedFieldPuns         #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE RankNTypes             #-}
-
+{-# LANGUAGE NamedFieldPuns              #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE MultiParamTypeClasses       #-}
+{-# LANGUAGE UndecidableInstances        #-}
+{-# LANGUAGE RankNTypes                  #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 
 
 module Yage.Core.Application.Types
-    ( Application, ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
+    ( Application(..), ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
+    , throwAppException
     , Window(..), WindowHandle, WindowConfig(..)
 
     , GLFWError
@@ -22,11 +23,12 @@ module Yage.Core.Application.Types
 import           Yage.Prelude                 hiding (pass)
 import           Data.Version                 (Version)
 
-import           Control.Monad.Exception
+import           Control.Monad.Exception      as Ex
 import           Control.Monad.RWS.Strict     (RWST)
 import           Control.Monad.State
 import           Control.Monad.Reader
 import           Control.Monad.Writer
+import           Control.Monad.Base
 import           Control.Monad.Trans.Resource
 import           Data.Trie                    (Trie)
 
@@ -43,7 +45,20 @@ type GLFWError = GLFW.Error
 
 --------------------------------------------------------------------------------
 
-type Application l a = EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a
+newtype Application l a = Application { unApplication :: EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a }
+    deriving ( Functor, Applicative, Monad, MonadReader ApplicationEnv, MonadState ApplicationState )
+
+instance MonadIO (Application l) where
+    liftIO = Application . lift . liftIO
+
+instance MonadBase IO (Application l) where
+    liftBase = io
+
+instance (Throws SomeException l) => MonadThrow (Application l) where
+    throwM = Application . throw . toException
+
+instance Throws SomeException l => MonadResource (Application l) where
+    liftResourceT = Application . lift . lift
 
 
 data WindowConfig = WindowConfig
@@ -110,3 +125,5 @@ instance (Monoid w, MonadWriter w m) => MonadWriter w (EMT l m) where
                  Right (r,f) -> return (Right r, f)
 
 
+throwAppException :: (Exception e, Throws e l) => e -> Application l a
+throwAppException = Application . throw

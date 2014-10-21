@@ -87,13 +87,14 @@ defaultAppConfig = ApplicationConfig
     }
 
 
-execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
+execApplication :: String -> ApplicationConfig -> Application AnyException b -> IO b
 execApplication title conf app = do
-    let theApp = tryEMT $ runApp app
+    -- unpeel complete monad stack
+    let runApp e s = runResourceT $ evalRWST (tryEMT $ unApplication $ setupApp app) e s
     rootL      <- getRootLogger
     env        <- initalEnv title conf
 
-    (eResult, st') <- runResourceT $ evalRWST theApp env (initialState { appTitle = title })
+    (eResult, st') <- runApp env (initialState { appTitle = title })
 
     logL rootL NOTICE $ unpack $ format "Final state:[{}]" ( Only $ Shown st' )
 
@@ -104,31 +105,32 @@ execApplication title conf app = do
             logL rootL CRITICAL $ unpack $ format ">> Application ended unexpectedly with: {}" ( Only $ Shown ex )
             error $ show ex
     where
-        runApp app = do
-            startup
-            x <- app
-            shutdown
-            return x
 
-        startup = do
-            setupLogging
-            initGlfw
-            infoM . ("yage-core version: " ++) . show =<< asks coreversion
-            infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
-            registerGlobalErrorCallback =<< getAppLogger
+    setupApp app = do
+        startup
+        x <- app
+        shutdown
+        return x
 
-        shutdown = destroyAllWindows >> terminateGlfw
+    startup = do
+        setupLogging
+        initGlfw
+        infoM . ("yage-core version: " ++) . show =<< asks coreversion
+        infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
+        registerGlobalErrorCallback =<< getAppLogger
 
-        setupLogging = do
-            prio <- asks $ logPriority . appConfig
-            fmt  <- asks $ logFormatter . appConfig
-            io $ do
-                h <- streamHandler stderr DEBUG >>= \lh -> return $
-                     LogHandler.setFormatter lh fmt
+    shutdown = destroyAllWindows >> terminateGlfw
 
-                -- TODO set only app logger
-                updateGlobalLogger rootLoggerName (setHandlers [h])
-                updateGlobalLogger rootLoggerName (setLevel prio)
+    setupLogging = do
+        prio <- asks $ logPriority . appConfig
+        fmt  <- asks $ logFormatter . appConfig
+        io $ do
+            h <- streamHandler stderr DEBUG >>= \lh -> return $
+                 LogHandler.setFormatter lh fmt
+
+            -- TODO set only app logger
+            updateGlobalLogger rootLoggerName (setHandlers [h])
+            updateGlobalLogger rootLoggerName (setLevel prio)
 
 
 
@@ -176,7 +178,7 @@ windowByHandle wh = do
         mw   = find (\w -> winHandle w == wh) wins
     case mw of
         Just w -> return w
-        Nothing -> throw . InternalException . toException $ InvalidWindowHandleException
+        Nothing -> throwAppException . InternalException . toException $ InvalidWindowHandleException
 
 
 

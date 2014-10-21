@@ -72,7 +72,7 @@ createWindowHandle width height title mMon mWin = do
     mwin <- glfw $ GLFW.createWindow width height title mMon mWin
     case mwin of
         Just win -> return win
-        Nothing -> throw $ WindowCreationException "no window created"
+        Nothing -> throwAppException $ WindowCreationException "no window created"
 
 withWindowHandle :: (Throws InternalException l) => Window -> (GLFW.Window -> Application l a) -> Application l a
 withWindowHandle win f = f $ winHandle win
