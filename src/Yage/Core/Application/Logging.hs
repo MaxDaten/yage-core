@@ -43,7 +43,7 @@ getAppLogger = asks $ snd . appLogger
 getWinLogger :: Window -> Logger
 getWinLogger = snd . winLogger
 
-debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM :: (Throws InternalException l) => String -> Application l ()
+debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM :: (Throws InternalException l, Show a) => a -> Application l ()
 
 debugM     = logM Logger.DEBUG
 infoM      = logM Logger.INFO
