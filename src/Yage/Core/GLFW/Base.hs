@@ -14,14 +14,14 @@ import           Yage.Core.Application.Types
 
 {-# INLINE glfw #-}
 glfw :: (Throws InternalException l) => IO a -> Application l a
-glfw = Application . wrapException IOException . io
+glfw = wrapException IOException . io
 
 
 {-# INLINE initGlfw #-}
 initGlfw :: (Throws InternalException l) => Application l ()
 initGlfw = do
     inited <- glfw $ GLFW.init
-    unless inited (Application $ throw $ IOException . toException $ InitException)
+    unless inited $ throw $ IOException . toException $ InitException
 
 
 

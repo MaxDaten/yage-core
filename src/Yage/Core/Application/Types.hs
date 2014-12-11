@@ -9,8 +9,8 @@
 
 
 module Yage.Core.Application.Types
-    ( Application(..), ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
-    , throwAppException
+    ( Application
+    , ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
     , Window(..), WindowHandle, WindowConfig(..)
 
     , GLFWError
@@ -45,20 +45,13 @@ type GLFWError = GLFW.Error
 
 --------------------------------------------------------------------------------
 
-newtype Application l a = Application { unApplication :: EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a }
-    deriving ( Functor, Applicative, Monad, MonadReader ApplicationEnv, MonadState ApplicationState )
+type Application l a = EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a
 
-instance MonadIO (Application l) where
-    liftIO = Application . lift . liftIO
+instance (Throws SomeException l, MonadThrow m) => MonadThrow (EMT l m) where
+    throwM = throw . toException
 
-instance MonadBase IO (Application l) where
-    liftBase = io
-
-instance (Throws SomeException l) => MonadThrow (Application l) where
-    throwM = Application . throw . toException
-
-instance Throws SomeException l => MonadResource (Application l) where
-    liftResourceT = Application . lift . lift
+instance (Throws SomeException l, MonadBase IO m, MonadThrow m, MonadIO m, MonadResource m) => MonadResource (EMT l m) where
+    liftResourceT = lift . liftResourceT
 
 
 data WindowConfig = WindowConfig
@@ -123,7 +116,3 @@ instance (Monoid w, MonadWriter w m) => MonadWriter w (EMT l m) where
                case a of
                  Left  l     -> return (Left l, id)
                  Right (r,f) -> return (Right r, f)
-
-
-throwAppException :: (Exception e, Throws e l) => e -> Application l a
-throwAppException = Application . throw

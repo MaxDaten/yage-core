@@ -9,4 +9,4 @@ import           Yage.Core.Application.Exception
 
 -- move to a better location
 ioe :: (Throws InternalException l) => IO a -> Application l a
-ioe = Application . wrapException IOException . io
+ioe = wrapException IOException . io

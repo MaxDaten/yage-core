@@ -32,7 +32,7 @@ module Yage.Core.Application
     ) where
 
 --------------------------------------------------------------------------------
-import           Yage.Prelude
+import           Yage.Prelude hiding (finally)
 
 import qualified Data.ByteString.Char8           as BS (pack)
 import           Data.Trie                       (Trie)
@@ -90,7 +90,7 @@ defaultAppConfig = ApplicationConfig
 execApplication :: String -> ApplicationConfig -> Application AnyException b -> IO b
 execApplication title conf app = do
     -- unpeel complete monad stack
-    let runApp e s = runResourceT $ evalRWST (tryEMT $ unApplication $ setupApp app) e s
+    let runApp e s = runResourceT $ evalRWST (tryEMT $ startup >> app `finally` shutdown) e s
     rootL      <- getRootLogger
     env        <- initalEnv title conf
 
@@ -104,13 +104,8 @@ execApplication title conf app = do
         Left ex      -> do
             logL rootL CRITICAL $ unpack $ format ">> Application ended unexpectedly with: {}" ( Only $ Shown ex )
             error $ show ex
-    where
 
-    setupApp app = do
-        startup
-        x <- app
-        shutdown
-        return x
+    where
 
     startup = do
         setupLogging
@@ -119,6 +114,7 @@ execApplication title conf app = do
         infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
         registerGlobalErrorCallback =<< getAppLogger
 
+    shutdown :: Application AnyException ()
     shutdown = destroyAllWindows >> terminateGlfw
 
     setupLogging = do
@@ -178,7 +174,7 @@ windowByHandle wh = do
         mw   = find (\w -> winHandle w == wh) wins
     case mw of
         Just w -> return w
-        Nothing -> throwAppException . InternalException . toException $ InvalidWindowHandleException
+        Nothing -> throw $ InternalException . toException $ InvalidWindowHandleException
 
 
 
