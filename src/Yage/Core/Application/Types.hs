@@ -1,15 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-{-# LANGUAGE NamedFieldPuns         #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE RankNTypes             #-}
-
+{-# LANGUAGE NamedFieldPuns              #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE MultiParamTypeClasses       #-}
+{-# LANGUAGE UndecidableInstances        #-}
+{-# LANGUAGE RankNTypes                  #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 
 
 module Yage.Core.Application.Types
-    ( Application, ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
+    ( Application
+    , ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
     , Window(..), WindowHandle, WindowConfig(..)
 
     , GLFWError
@@ -22,11 +23,12 @@ module Yage.Core.Application.Types
 import           Yage.Prelude                 hiding (pass)
 import           Data.Version                 (Version)
 
-import           Control.Monad.Exception
+import           Control.Monad.Exception      as Ex
 import           Control.Monad.RWS.Strict     (RWST)
 import           Control.Monad.State
 import           Control.Monad.Reader
 import           Control.Monad.Writer
+import           Control.Monad.Base
 import           Control.Monad.Trans.Resource
 import           Data.Trie                    (Trie)
 
@@ -44,6 +46,12 @@ type GLFWError = GLFW.Error
 --------------------------------------------------------------------------------
 
 type Application l a = EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a
+
+instance (Throws SomeException l, MonadThrow m) => MonadThrow (EMT l m) where
+    throwM = throw . toException
+
+instance (Throws SomeException l, MonadBase IO m, MonadThrow m, MonadIO m, MonadResource m) => MonadResource (EMT l m) where
+    liftResourceT = lift . liftResourceT
 
 
 data WindowConfig = WindowConfig
@@ -108,5 +116,3 @@ instance (Monoid w, MonadWriter w m) => MonadWriter w (EMT l m) where
                case a of
                  Left  l     -> return (Left l, id)
                  Right (r,f) -> return (Right r, f)
-
-

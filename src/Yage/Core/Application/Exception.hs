@@ -19,6 +19,7 @@ import qualified Graphics.UI.GLFW        as GLFW (Error)
 data ApplicationException
     = ApplicationException
     | InitException
+    | Shutdown
     deriving (Show, Typeable)
 
 data InternalException

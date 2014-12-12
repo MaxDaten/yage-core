@@ -51,19 +51,20 @@ library
 
   -- other-extensions:    
   build-depends:         base                     < 5
-                       , yage-contrib            == 0.0.1.0
-                       , transformers            == 0.4.*
-                       , containers              >  0.5      &&  < 0.6
-                       , mtl                     == 2.2.*
-                       , control-monad-exception == 0.10.*
-                       , resourcet               == 1.1.*
-                       , stm                     == 2.4.*
-                       , time                    == 1.4.*
-                       , old-locale              == 1.0.*
-                       , unix                    >= 2.6      &&  < 2.8
+                       , yage-contrib            == 0.1.0.0
+                       
+                       , transformers            >= 0.4
+                       , containers              >= 0.5
+                       , mtl                     >= 2.2
+                       , control-monad-exception >= 0.10
+                       , transformers-base       >= 0.4
+                       , resourcet               >= 1.1
+                       , stm                     >= 2.4
+                       , time                    >= 1.4
+                       , unix                    >= 2.6
 
-                       , lens                    == 4.3.*
-                       , linear                  == 1.10.*
+                       , lens                    >= 4.6
+                       , linear                  >= 1.10
                        , hslogger                >= 1.2
                        , bytestring              >= 0.10
                        , GLFW-b                  >= 1.4

@@ -25,14 +25,16 @@ module Yage.Core.Application
     , io
 
     , allocate, register, release, unprotect, resourceMask
-
+    -- * Reexports
     , module Event
     , module Window
     , module Types
+    , module Exception
+    , module Logging
     ) where
 
 --------------------------------------------------------------------------------
-import           Yage.Prelude
+import           Yage.Prelude hiding (finally)
 
 import qualified Data.ByteString.Char8           as BS (pack)
 import           Data.Trie                       (Trie)
@@ -48,12 +50,12 @@ import           Control.Monad.Exception
 import           Control.Monad.Trans.Resource
 
 
-import           Yage.Core.Application.Exception
+import           Yage.Core.Application.Exception as Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
 import           Yage.Core.Application.Types     as Types  hiding (appConfig, appLogger)
 import           Yage.Core.Application.Event     as Event
-import           Yage.Core.Application.Logging
+import           Yage.Core.Application.Logging   as Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
 
@@ -87,13 +89,14 @@ defaultAppConfig = ApplicationConfig
     }
 
 
-execApplication :: (l ~ AnyException) => String -> ApplicationConfig -> Application l b -> IO b
+execApplication :: String -> ApplicationConfig -> Application AnyException b -> IO b
 execApplication title conf app = do
-    let theApp = tryEMT $ runApp app
+    -- unpeel complete monad stack
+    let runApp e s = runResourceT $ evalRWST (tryEMT $ startup >> app `finally` shutdown) e s
     rootL      <- getRootLogger
     env        <- initalEnv title conf
 
-    (eResult, st') <- runResourceT $ evalRWST theApp env (initialState { appTitle = title })
+    (eResult, st') <- runApp env (initialState { appTitle = title })
 
     logL rootL NOTICE $ unpack $ format "Final state:[{}]" ( Only $ Shown st' )
 
@@ -103,32 +106,29 @@ execApplication title conf app = do
         Left ex      -> do
             logL rootL CRITICAL $ unpack $ format ">> Application ended unexpectedly with: {}" ( Only $ Shown ex )
             error $ show ex
+
     where
-        runApp app = do
-            startup
-            x <- app
-            shutdown
-            return x
 
-        startup = do
-            setupLogging
-            initGlfw
-            infoM . ("yage-core version: " ++) . show =<< asks coreversion
-            infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
-            registerGlobalErrorCallback =<< getAppLogger
+    startup = do
+        setupLogging
+        initGlfw
+        infoM . ("yage-core version: " ++) . show =<< asks coreversion
+        infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
+        registerGlobalErrorCallback =<< getAppLogger
 
-        shutdown = destroyAllWindows >> terminateGlfw
+    shutdown :: Application AnyException ()
+    shutdown = destroyAllWindows >> terminateGlfw
 
-        setupLogging = do
-            prio <- asks $ logPriority . appConfig
-            fmt  <- asks $ logFormatter . appConfig
-            io $ do
-                h <- streamHandler stderr DEBUG >>= \lh -> return $
-                     LogHandler.setFormatter lh fmt
+    setupLogging = do
+        prio <- asks $ logPriority . appConfig
+        fmt  <- asks $ logFormatter . appConfig
+        io $ do
+            h <- streamHandler stderr DEBUG >>= \lh -> return $
+                 LogHandler.setFormatter lh fmt
 
-                -- TODO set only app logger
-                updateGlobalLogger rootLoggerName (setHandlers [h])
-                updateGlobalLogger rootLoggerName (setLevel prio)
+            -- TODO set only app logger
+            updateGlobalLogger rootLoggerName (setHandlers [h])
+            updateGlobalLogger rootLoggerName (setLevel prio)
 
 
 
@@ -176,7 +176,7 @@ windowByHandle wh = do
         mw   = find (\w -> winHandle w == wh) wins
     case mw of
         Just w -> return w
-        Nothing -> throw . InternalException . toException $ InvalidWindowHandleException
+        Nothing -> throw $ InternalException . toException $ InvalidWindowHandleException
 
 
 
