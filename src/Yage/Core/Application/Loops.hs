@@ -5,13 +5,10 @@ module Yage.Core.Application.Loops where
 import           Yage.Prelude hiding (catch)
 
 import           Control.Monad.State             (gets, modify)
-
+import           System.Mem
 
 import           Yage.Core.Application
-import           Yage.Core.Application.Exception
-import           System.Mem
 import           Yage.Core.Application.Utils
-
 
 
 basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l, EventCtr ectr)

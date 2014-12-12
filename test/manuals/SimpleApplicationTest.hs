@@ -6,7 +6,6 @@ import Control.Monad (void)
 
 import Yage.Core.Application
 import Yage.Core.Application.Loops
-import Yage.Core.Application.Logging
 
 data KeyLogger = KeyLogger
 

@@ -25,10 +25,12 @@ module Yage.Core.Application
     , io
 
     , allocate, register, release, unprotect, resourceMask
-
+    -- * Reexports
     , module Event
     , module Window
     , module Types
+    , module Exception
+    , module Logging
     ) where
 
 --------------------------------------------------------------------------------
@@ -48,12 +50,12 @@ import           Control.Monad.Exception
 import           Control.Monad.Trans.Resource
 
 
-import           Yage.Core.Application.Exception
+import           Yage.Core.Application.Exception as Exception
 import           Yage.Core.GLFW.Base
 import           Yage.Core.GLFW.Window           as Window
 import           Yage.Core.Application.Types     as Types  hiding (appConfig, appLogger)
 import           Yage.Core.Application.Event     as Event
-import           Yage.Core.Application.Logging
+import           Yage.Core.Application.Logging   as Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
 import           Yage.Core.Application.Utils
 
