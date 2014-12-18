@@ -44,8 +44,7 @@ import qualified Data.Trie                       as T (delete, empty, insert,
 import           Data.Char                       (isAlphaNum)
 
 import           Control.Monad.RWS.Strict        (evalRWST)
-import           Control.Monad.State             (get, gets, put, modify)
-import           Control.Monad.Reader            (asks)
+import           Control.Monad.RWS.Class
 import           Control.Monad.Exception
 import           Control.Monad.Trans.Resource
 

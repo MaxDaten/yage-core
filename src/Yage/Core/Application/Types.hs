@@ -6,10 +6,11 @@
 {-# LANGUAGE UndecidableInstances        #-}
 {-# LANGUAGE RankNTypes                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving  #-}
+{-# LANGUAGE FlexibleContexts            #-}
 
 
 module Yage.Core.Application.Types
-    ( Application
+    ( Application, MonadApplication(..)
     , ApplicationState(..), ApplicationEnv(..), ApplicationConfig(..)
     , Window(..), WindowHandle, WindowConfig(..)
 
@@ -25,10 +26,9 @@ import           Data.Version                 (Version)
 
 import           Control.Monad.Exception      as Ex
 import           Control.Monad.RWS.Strict     (RWST)
+import           Control.Monad.RWS.Class
 import           Control.Monad.State
-import           Control.Monad.Reader
 import           Control.Monad.Writer
-import           Control.Monad.Base
 import           Control.Monad.Trans.Resource
 import           Data.Trie                    (Trie)
 
@@ -45,14 +45,27 @@ type GLFWError = GLFW.Error
 
 --------------------------------------------------------------------------------
 
-type Application l a = EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)) a
+type Application l = (EMT l (RWST ApplicationEnv () ApplicationState (ResourceT IO)))
 
 instance (Throws SomeException l, MonadThrow m) => MonadThrow (EMT l m) where
     throwM = throw . toException
 
-instance (Throws SomeException l, MonadBase IO m, MonadThrow m, MonadIO m, MonadResource m) => MonadResource (EMT l m) where
-    liftResourceT = lift . liftResourceT
+class Monad m => MonadApplication m where
+    liftApp :: Application AnyException a -> m a
 
+instance MonadApplication (Application AnyException) where
+    liftApp = id
+instance (MonadApplication m) => MonadApplication (StateT s m) where
+    liftApp = lift . liftApp
+instance (MonadApplication m, Monoid w) => MonadApplication (RWST r w s m) where
+    liftApp = lift . liftApp
+instance (MonadApplication m) => MonadApplication (ReaderT r m) where
+    liftApp = lift . liftApp
+instance (MonadApplication m, Monoid w) => MonadApplication (WriterT w m) where
+    liftApp = lift . liftApp
+
+instance (Throws SomeException l) => MonadResource (Application l) where
+    liftResourceT = lift . lift
 
 data WindowConfig = WindowConfig
     { windowSize  :: (Int, Int)
