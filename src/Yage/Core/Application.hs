@@ -111,8 +111,8 @@ execApplication title conf app = do
     startup = do
         setupLogging
         initGlfw
-        infoM . ("yage-core version: " ++) . show =<< asks coreversion
-        infoM . ("glfw-version: " ++)      . show =<< getGLFWVersion
+        infoLog . ("yage-core version: " ++) . show =<< asks coreversion
+        infoLog . ("glfw-version: " ++)      . show =<< getGLFWVersion
         registerGlobalErrorCallback =<< getAppLogger
 
     shutdown :: Application AnyException ()
@@ -140,12 +140,8 @@ createWindow :: (Throws InternalException l) => Int -> Int -> String -> Applicat
 createWindow width height title = do
     win <- mkWindow width height title
     addWindow win
-    withWindowAsCurrent win $ \win -> mapM_ (debugM . winS win) =<< windowInfo win
+    withWindowAsCurrent win $ \win -> mapM_ (debugLog . shows (winHandle win)) =<< windowInfo win
     return win
-    where
-
-        winS :: Window -> ShowS
-        winS win = ((show . winHandle $ win) ++)
 
 
 createWindowWithHints :: (Throws InternalException l) => [WindowHint] -> Int -> Int -> String -> Application l (Window)

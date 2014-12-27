@@ -4,7 +4,8 @@
 
 module Yage.Core.Application.Logging
     ( getAppLogger, getWinLogger
-    , logM, debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM
+    , logApp, logging
+    , debugLog, infoLog, noticeLog, warningLog, errorLog, criticalLog, alertLog, emergencyLog
     , coloredLogFormatter
 
     , module Logger
@@ -43,22 +44,25 @@ getAppLogger = asks $ snd . appLogger
 getWinLogger :: Window -> Logger
 getWinLogger = snd . winLogger
 
-debugM, infoM, noticeM, warningM, errorM, criticalM, alertM, emergencyM :: (Throws InternalException l, Show a) => a -> Application l ()
+debugLog, infoLog, noticeLog, warningLog, errorLog, criticalLog, alertLog, emergencyLog :: (Throws InternalException l, Show a) => a -> Application l ()
 
-debugM     = logM Logger.DEBUG
-infoM      = logM Logger.INFO
-noticeM    = logM Logger.NOTICE
-warningM   = logM Logger.WARNING
-errorM     = logM Logger.ERROR
-criticalM  = logM Logger.CRITICAL
-alertM     = logM Logger.ALERT
-emergencyM = logM Logger.EMERGENCY
+debugLog     = logApp Logger.DEBUG
+infoLog      = logApp Logger.INFO
+noticeLog    = logApp Logger.NOTICE
+warningLog   = logApp Logger.WARNING
+errorLog     = logApp Logger.ERROR
+criticalLog  = logApp Logger.CRITICAL
+alertLog     = logApp Logger.ALERT
+emergencyLog = logApp Logger.EMERGENCY
 
 
-logM :: (Throws InternalException l, Show a) => Logger.Priority -> a -> Application l ()
-logM pri msg = do
+logApp :: (Throws InternalException l, Show a) => Logger.Priority -> a -> Application l ()
+logApp p m = do
     l <- getAppLogger
-    ioe $ logL l pri (show msg)
+    logging l p m
+
+logging :: (Throws InternalException l, Show a) => Logger -> Logger.Priority -> a -> Application l ()
+logging logger pri msg = ioe $ Logger.logL logger pri (show msg)
 
 --------------------------------------------------------------------------------
 
