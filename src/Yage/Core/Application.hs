@@ -31,6 +31,7 @@ module Yage.Core.Application
     , module Types
     , module Exception
     , module Logging
+    , module Utils
     ) where
 
 --------------------------------------------------------------------------------
@@ -56,7 +57,7 @@ import           Yage.Core.Application.Types     as Types  hiding (appConfig, ap
 import           Yage.Core.Application.Event     as Event
 import           Yage.Core.Application.Logging   as Logging
 import qualified Yage.Core.Application.LogHandler as LogHandler
-import           Yage.Core.Application.Utils
+import           Yage.Core.Application.Utils     as Utils
 
 import           Linear
 --------------------------------------------------------------------------------
@@ -97,14 +98,14 @@ execApplication title conf app = do
 
     (eResult, st') <- runApp env (initialState { appTitle = title })
 
-    logL rootL NOTICE $ unpack $ format "Final state:[{}]" ( Only $ Shown st' )
+    logL rootL NOTICE $ printf "Final state:[%s]" (show st')
 
     case eResult of
         Right result ->
             removeAllHandlers >> return result
         Left ex      -> do
-            logL rootL CRITICAL $ unpack $ format ">> Application ended unexpectedly with: {}" ( Only $ Shown ex )
-            error $ show ex
+            logL rootL CRITICAL $ printf ">> Application ended unexpectedly with: %s" ( show ex )
+            throwM ex
 
     where
 

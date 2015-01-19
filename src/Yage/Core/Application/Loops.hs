@@ -8,8 +8,6 @@ import           Control.Monad.State             (gets, modify)
 import           System.Mem
 
 import           Yage.Core.Application
-import           Yage.Core.Application.Utils
-
 
 basicWindowLoop :: (Throws ApplicationException l, Throws InternalException l, EventCtr ectr)
                 => WindowConfig                                                    -- | window size and hints

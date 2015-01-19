@@ -106,8 +106,7 @@ data ApplicationConfig = ApplicationConfig
 --------------------------------------------------------------------------------
 
 instance Show Window where
-    show Window {winTitle} = show $
-        format "Window: {} - state: {}" ( Shown winTitle, Shown "N/A" )
+    show Window {winTitle} = printf "Window: %s" winTitle
 
 
 -- from: http://hackage.haskell.org/package/control-monad-exception-monadsfd-0.10.3/src/extensions/Control/Monad/Exception/MonadsFD.hs
