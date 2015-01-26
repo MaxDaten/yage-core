@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE RecordWildCards            #-}
 
 module Yage.Core.GLFW.Base where
 
@@ -9,6 +10,8 @@ import           Yage.Core.Application.Exception
 import qualified Graphics.UI.GLFW as GLFW
 
 import           Yage.Core.Application.Types
+import           Data.Version
+import           System.IO.Unsafe (unsafePerformIO)
 
 --------------------------------------------------------------------------------
 
@@ -29,5 +32,6 @@ initGlfw = do
 terminateGlfw :: (Throws InternalException l) => Application l ()
 terminateGlfw = glfw $ GLFW.terminate
 
-getGLFWVersion :: (Throws InternalException l) => Application l GLFW.Version
-getGLFWVersion = glfw $ GLFW.getVersion
+glfwVersion :: Version
+glfwVersion = toVersion (unsafePerformIO GLFW.getVersion) where
+    toVersion GLFW.Version{..} = Version [versionMajor, versionMinor, versionRevision] []

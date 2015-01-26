@@ -14,6 +14,7 @@ import           Graphics.UI.GLFW as GLFWExports (getWindowPos, getWindowSize, g
 
 import           Yage.Core.Application.Types
 import           Yage.Core.GLFW.Base
+import           Data.Version
 
 
 --------------------------------------------------------------------------------
@@ -57,12 +58,9 @@ revertGlobalWindowHints = glfw GLFW.defaultWindowHints
 getWindowClientAPI :: (Throws InternalException l) => Window -> Application l GLFW.ClientAPI
 getWindowClientAPI = glfw . GLFW.getWindowClientAPI . winHandle
 
-getWindowContextGLVersion :: (Throws InternalException l) => Window -> Application l GLFW.Version
+getWindowContextGLVersion :: (Throws InternalException l) => Window -> Application l Version
 getWindowContextGLVersion win = withWindowHandle win $ \wh ->
-    GLFW.Version
-        <$> glfw (GLFW.getWindowContextVersionMajor wh)
-        <*> glfw (GLFW.getWindowContextVersionMinor wh)
-        <*> glfw (GLFW.getWindowContextVersionRevision wh)
+    (`Version` []) <$> sequence [glfw (GLFW.getWindowContextVersionMajor wh), glfw (GLFW.getWindowContextVersionMinor wh), glfw (GLFW.getWindowContextVersionRevision wh)]
 
 getWindowGLProfile :: (Throws InternalException l) => Window -> Application l GLFW.OpenGLProfile
 getWindowGLProfile = glfw . GLFW.getWindowOpenGLProfile . winHandle

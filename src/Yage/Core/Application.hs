@@ -43,6 +43,7 @@ import qualified Data.Trie                       as T (delete, empty, insert,
                                                        lookup, toListBy)
 
 import           Data.Char                       (isAlphaNum)
+import           Data.Version                    (showVersion)
 
 import           Control.Monad.RWS.Strict        (evalRWST)
 import           Control.Monad.RWS.Class
@@ -112,8 +113,9 @@ execApplication title conf app = do
     startup = do
         setupLogging
         initGlfw
-        infoLog . ("yage-core version: " ++) . show =<< asks coreversion
-        infoLog . ("glfw-version: " ++)      . show =<< getGLFWVersion
+        coreV <- asks coreversion
+        infoLog $ (asString $ printf "yage-core:    %s" (showVersion coreV))
+        infoLog $ (asString $ printf "glfw-version: %s" (showVersion glfwVersion))
         registerGlobalErrorCallback =<< getAppLogger
 
     shutdown :: Application AnyException ()
