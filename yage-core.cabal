@@ -56,7 +56,8 @@ library
                        , transformers            >= 0.4
                        , containers              >= 0.5
                        , mtl                     >= 2.2
-                       , control-monad-exception >= 0.10
+                       , control-monad-exception >= 0.11.1
+                       , monad-control           == 0.3.3.0
                        , transformers-base       >= 0.4
                        , resourcet               >= 1.1
                        , stm                     >= 2.4
