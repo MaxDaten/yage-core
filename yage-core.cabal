@@ -62,7 +62,6 @@ library
                        , resourcet               >= 1.1
                        , stm                     >= 2.4
                        , time                    >= 1.4
-                       , unix                    >= 2.6
 
                        , lens                    >= 4.6
                        , linear                  >= 1.10
