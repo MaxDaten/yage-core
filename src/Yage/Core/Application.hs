@@ -143,7 +143,6 @@ createWindow :: (Throws InternalException l) => Int -> Int -> String -> Applicat
 createWindow width height title = do
     win <- mkWindow width height title
     addWindow win
-    withWindowAsCurrent win $ \win -> mapM_ (debugLog . shows (winHandle win)) =<< windowInfo win
     return win
 
 

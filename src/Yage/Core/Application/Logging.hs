@@ -27,7 +27,6 @@ import qualified System.Log.Formatter            as Formatter
 
 import           System.Console.ANSI
 import           Control.Concurrent             (myThreadId)
-import           System.Posix.Process           (getProcessID)
 import           Data.Time                      (getZonedTime)
 
 import           Yage.Core.Application.Types
@@ -44,7 +43,7 @@ getAppLogger = asks $ snd . appLogger
 getWinLogger :: Window -> Logger
 getWinLogger = snd . winLogger
 
-debugLog, infoLog, noticeLog, warningLog, errorLog, criticalLog, alertLog, emergencyLog :: (Throws InternalException l, Show a) => a -> Application l ()
+debugLog, infoLog, noticeLog, warningLog, errorLog, criticalLog, alertLog, emergencyLog :: (Show a, MonadApplication m) => a -> m ()
 
 debugLog     = logApp Logger.DEBUG
 infoLog      = logApp Logger.INFO
@@ -56,13 +55,13 @@ alertLog     = logApp Logger.ALERT
 emergencyLog = logApp Logger.EMERGENCY
 
 
-logApp :: (Throws InternalException l, Show a) => Logger.Priority -> a -> Application l ()
-logApp p m = do
+logApp :: (Show a, MonadApplication m) => Logger.Priority -> a -> m ()
+logApp p m = liftApp $ do
     l <- getAppLogger
     logging l p m
 
-logging :: (Throws InternalException l, Show a) => Logger -> Logger.Priority -> a -> Application l ()
-logging logger pri msg = ioe $ Logger.logL logger pri (show msg)
+logging :: (Show a, MonadApplication m) => Logger -> Logger.Priority -> a -> m ()
+logging logger pri msg = liftApp $ ioe $ Logger.logL logger pri (show msg)
 
 --------------------------------------------------------------------------------
 
@@ -78,7 +77,6 @@ coloredLogFormatter = formatter
                    ,("prio", return $ show prio)
                    ,("loggername", return loggername)
                    ,("tid", show <$> myThreadId)
-                   ,("pid", show <$> getProcessID)
                    ]
                 color = msgColor prio
             in (\s -> color ++ s ++ reset) <$> replaceVarM vars format
