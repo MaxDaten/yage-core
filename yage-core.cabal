@@ -67,7 +67,7 @@ library
                        , linear                  >= 1.10
                        , hslogger                >= 1.2
                        , bytestring              >= 0.10
-                       , GLFW-b                  >= 1.4
+                       , GLFW-b                  >= 1.4.7
                        , bytestring-trie         >= 0.2
 
                        , ansi-terminal           >= 0.6
